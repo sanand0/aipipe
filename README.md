@@ -244,6 +244,88 @@ Response:
 }
 ```
 
+### Similarity API
+
+**`POST /similarity`**: Calculate semantic similarity between documents and topics using embeddings.
+
+**Example**: Calculate similarity between documents and topics
+
+```bash
+curl https://aipipe.org/similarity -H "Authorization: $AIPIPE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "docs": ["The quick brown fox jumps over the lazy dog", "A fast orange fox leaps over a sleepy canine"],
+    "topics": ["fox jumping", "dog sleeping"],
+    "model": "text-embedding-3-small",
+    "precision": 5
+  }'
+```
+
+Response:
+
+```jsonc
+{
+  "model": "text-embedding-3-small",
+  "similarity": [
+    [0.82345, 0.12345],  // Similarity scores for first doc against each topic
+    [0.81234, 0.23456]   // Similarity scores for second doc against each topic
+  ],
+  "tokens": 42
+}
+```
+
+**Example**: Calculate similarity between all documents (self-similarity matrix)
+
+```bash
+curl https://aipipe.org/similarity -H "Authorization: $AIPIPE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "docs": [
+      "The quick brown fox jumps over the lazy dog",
+      "A fast orange fox leaps over a sleepy canine",
+      "The lazy dog sleeps while the fox jumps"
+    ],
+    "model": "text-embedding-3-small"
+  }'
+```
+
+Response:
+
+```jsonc
+{
+  "model": "text-embedding-3-small",
+  "similarity": [
+    [1.00000, 0.82345, 0.71234],  // First doc's similarity with all docs
+    [0.82345, 1.00000, 0.67890],  // Second doc's similarity with all docs
+    [0.71234, 0.67890, 1.00000]   // Third doc's similarity with all docs
+  ],
+  "tokens": 63
+}
+```
+
+**Example**: Using structured input format
+
+```bash
+curl https://aipipe.org/similarity -H "Authorization: $AIPIPE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "docs": [
+      { "type": "text", "value": "The quick brown fox jumps over the lazy dog" },
+      { "type": "text", "value": "A fast orange fox leaps over a sleepy canine" }
+    ],
+    "topics": [
+      { "type": "text", "value": "fox jumping" },
+      { "type": "text", "value": "dog sleeping" }
+    ]
+  }'
+```
+
+Parameters:
+- `docs`: Array of strings or objects with `{type, value}`. Required.
+- `topics`: Optional array of strings or objects with `{type, value}`. If not provided, calculates similarity between all documents.
+- `model`: Optional embedding model name. Defaults to "text-embedding-3-small".
+- `precision`: Optional number of decimal places in similarity scores. Defaults to 5.
+
 ## Admin Guide
 
 To self-host AI Pipe, you need a:
@@ -432,11 +514,11 @@ If you need production features, explore LLM Routers like:
 - [helicone 3,715 ⭐ May 2025](https://github.com/Helicone/helicone). 15+ providers (OpenAI, Anthropic, Bedrock, Groq, Gemini, …). **Auth**: Helicone org key + BYO provider keys. **Rate-limit**: soft limits via dashboard alerts, no enforced throttling (observability focus).
 - [FastChat 38,506 ⭐ Apr 2025](https://github.com/lm-sys/FastChat). Local/remote self-hosted models (e.g., Mixtral, Llama). **Auth**: Bearer key pass-through. **Rate-limit**: none (use external proxy).
 - [apisix 15,076 ⭐ Apr 2025](https://github.com/apache/apisix). 100+ providers via plugins (OpenAI, Claude, Gemini, Mistral, …). **Auth**: JWT, Key-Auth, OIDC, HMAC. **Rate-limit**: token/request per consumer/route, distributed leaky-bucket.
-- [envoy 25,916 ⭐ May 2025](https://github.com/envoyproxy/envoy). Provider-agnostic (define clusters manually). **Auth**: mTLS, API key, OIDC via filters. **Rate-limit**: global/local via Envoy’s rate-limit service.
+- [envoy 25,916 ⭐ May 2025](https://github.com/envoyproxy/envoy). Provider-agnostic (define clusters manually). **Auth**: mTLS, API key, OIDC via filters. **Rate-limit**: global/local via Envoy's rate-limit service.
 - [openllmetry 5,752 ⭐ Apr 2025](https://github.com/traceloop/openllmetry). Configurable providers (OpenAI, Azure, Anthropic, local vLLM). **Auth**: OpenAI-style key, BYO keys. **Rate-limit**: Redis-backed token/RPS optional.
-- [kong 40,746 ⭐ Apr 2025](https://github.com/Kong/kong). Multi-provider via “ai-llm-route” plugin. **Auth**: Key-Auth, ACL, OIDC via plugins. **Rate-limit**: per-key, per-route, cost-aware token limits.
+- [kong 40,746 ⭐ Apr 2025](https://github.com/Kong/kong). Multi-provider via "ai-llm-route" plugin. **Auth**: Key-Auth, ACL, OIDC via plugins. **Rate-limit**: per-key, per-route, cost-aware token limits.
 - [semantic-router 2,569 ⭐ Apr 2025](https://github.com/aurelio-labs/semantic-router) (experimental). Embedding-based routing within apps (no external provider integration). **Auth**: n/a. **Rate-limit**: n/a.
 - [unify 298 ⭐ May 2025](https://github.com/unifyai/unify). Providers wrapped via LiteLLM. **Auth**: Unify project key, BYO provider keys. **Rate-limit**: soft budget alerts; no enforced throttling yet.
 - [OpenRouter](https://openrouter.ai/) (SaaS). 300+ models, 30+ providers. **Auth**: OpenRouter key, OAuth2, BYO provider keys. **Rate-limit**: credit-based (1 req/credit/s, 20 rpm free tier), DDOS protection.
 - [Portkey Gateway](https://portkey.ai) (SaaS). 250+ providers & guard-rail plugins. **Auth**: Portkey API key, BYO keys, OAuth for teams. **Rate-limit**: sliding-window tokens, cost caps, programmable policy engine.
-- [Martian Model Router](https://withmartian.com/) (SaaS, private). Dozens of commercial/open models (Accenture’s "Switchboard"). **Auth**: Martian API key, BYO keys planned. **Rate-limit**: undisclosed; SLA-based dynamic throttling.
+- [Martian Model Router](https://withmartian.com/) (SaaS, private). Dozens of commercial/open models (Accenture's "Switchboard"). **Auth**: Martian API key, BYO keys planned. **Rate-limit**: undisclosed; SLA-based dynamic throttling.

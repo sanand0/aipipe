@@ -75,6 +75,10 @@ export default {
     const { url: targetUrl, headers, error, ...params } = await providers[provider].transform({ path, request, env });
     if (error) return jsonResponse(error);
 
+    // For similarity provider, return the result directly
+    if (provider === "similarity" && params.similarity) {
+      return jsonResponse({ code: 200, ...params });
+    }
     // Make the actual request
     const response = await fetch(targetUrl, {
       method: request.method,
