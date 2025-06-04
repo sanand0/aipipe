@@ -273,3 +273,47 @@ t.test("Admin: set cost", async (t) => {
   const actualCost = usageEnd.usage.find((row) => row.date === date)?.cost ?? 0;
   t.ok(Math.abs(actualCost - cost) < 1e-12);
 });
+
+t.test("Proxy API", async (t) => {
+  // Test successful request
+  const res1 = await fetch("/proxy/https://httpbin.org/get?x=1");
+  t.equal(res1.status, 200);
+  const body1 = await res1.json();
+  t.equal(body1.args.x, "1");
+  t.equal(res1.headers.get("X-Proxy-URL"), "https://httpbin.org/get?x=1");
+
+  // Test invalid URL
+  const res2 = await fetch("/proxy/ftp://example.com");
+  t.equal(res2.status, 400);
+  const body2 = await res2.json();
+  t.match(body2.message, /URL must begin with http/);
+
+  // Test timeout - using a URL that will definitely timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 1000); // Force timeout after 1s
+  try {
+    const res3 = await fetch("/proxy/https://httpbin.org/delay/35", {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    t.fail("Request should have timed out");
+  } catch (error) {
+    clearTimeout(timeoutId);
+    t.equal(error.name, "AbortError");
+  }
+
+  // Test request method and headers preservation
+  const res4 = await fetch("/proxy/https://httpbin.org/post", {
+    method: "POST",
+    headers: {
+      "X-Custom-Header": "test-value",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ test: true })
+  });
+  t.equal(res4.status, 200);
+  const body4 = await res4.json();
+  t.equal(body4.headers["X-Custom-Header"], "test-value");
+  t.equal(body4.headers["Content-Type"], "application/json");
+  t.equal(body4.json.test, true);
+});

@@ -21,8 +21,47 @@ export default {
     if (provider == "token") return await tokenFromCredential(url.searchParams.get("credential"), env.AIPIPE_SECRET);
 
     // Check if the URL matches a valid provider. Else let the user know
-    if (!providers[provider] && provider != "usage" && provider != "admin")
+    if (!providers[provider] && provider != "usage" && provider != "admin" && provider != "proxy")
       return jsonResponse({ code: 404, message: `Unknown provider: ${provider}` });
+
+    // Handle proxy requests
+    if (provider === "proxy") {
+      const targetUrl = request.url.split("/proxy/")[1]; // Remove /proxy/ from the path
+      if (!targetUrl.startsWith("http")) {
+        return jsonResponse({ code: 400, message: "URL must begin with http" });
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
+
+      try {
+        const response = await fetch(targetUrl, {
+          method: request.method,
+          headers: request.headers,
+          body: request.body,
+          redirect: "follow",
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        // Create new headers with the original response headers
+        const headers = new Headers(response.headers);
+        headers.set("X-Proxy-URL", targetUrl);
+        
+        return new Response(response.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: addCors(headers),
+        });
+      } catch (error) {
+        clearTimeout(timeoutId); // Make sure to clear timeout even on error
+        if (error.name === 'AbortError') {
+          return jsonResponse({ code: 504, message: "Request timed out after 30 seconds" });
+        }
+        return jsonResponse({ code: 500, message: `Proxy error: ${error.message}` });
+      }
+    }
 
     // Token must be present in Authorization: Bearer
     const token = (request.headers.get("Authorization") ?? "").replace(/^Bearer\s*/, "").trim();
