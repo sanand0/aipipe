@@ -77,6 +77,8 @@ export default {
 
     // For similarity provider, return the result directly
     if (provider === "similarity" && params.similarity) {
+      const { cost } = await providers[provider].cost({ model: params.model, usage: params.usage });
+      if (cost > 0) await aiPipeCost.add(email, cost);
       return jsonResponse({ code: 200, ...params });
     }
     // Make the actual request

@@ -55,7 +55,7 @@ export const providers = {
         // Error handling common
         const { docs, topics, model = "text-embedding-3-small", precision = 5 } = await request.json();
         if (!Array.isArray(docs) || docs.length === 0) {
-          return { error: { code: 400, message: "docs array is required" } };
+          return { error: { code: 400, message: "docs array is required" }, ...response};
         }
   
         const extractValue = (item) => {
@@ -100,7 +100,9 @@ export const providers = {
         return {
           model,
           similarity,
-          tokens: result.usage?.prompt_tokens ?? result.usage?.input_tokens ?? 0
+          usage: {
+            prompt_tokens: result.usage?.prompt_tokens ?? result.usage?.input_tokens ?? 0
+          }
         };
       } catch (error) {
         return { error: { code: 400, message: error.message } };
