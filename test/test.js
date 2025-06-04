@@ -180,6 +180,30 @@ t.test("OpenAI responses streaming completion and cost", async (t) => {
   t.ok(usageEnd.cost > usageStart.cost);
 });
 
+t.test("Similarity API", async (t) => {
+  const token = await testToken();
+  const usageStart = await getUsage(token);
+
+  const res = await fetch("/similarity", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({
+      docs: ["The quick brown fox jumps over the lazy dog"],
+      topics: ["fox jumping", "dog sleeping"],
+      model: "text-embedding-3-small"
+    }),
+  });
+  t.equal(res.status, 200);
+  const body = await res.json();
+  t.match(body.model, "text-embedding-3-small");
+  t.ok(Array.isArray(body.similarity));
+  t.equal(body.similarity.length, 1);
+  t.equal(body.similarity[0].length, 2);
+
+  const usageEnd = await getUsage(token);
+  t.ok(usageEnd.cost > usageStart.cost);
+});
+
 t.test("Budget limit exceeded", async (t) => {
   // This test assumes the user has already exceeded their budget
   const token = await testToken("blocked@example.com");

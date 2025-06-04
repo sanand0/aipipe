@@ -49,6 +49,66 @@ export const providers = {
       return { cost };
     },
   },
+
+  similarity: {
+    transform: async ({ request, env }) => {
+      try {
+        // Error handling common
+        const { docs, topics, model = "text-embedding-3-small", precision = 5 } = await request.json();
+        if (!Array.isArray(docs) || docs.length === 0)
+          return { error: { code: 400, message: "required: docs[] array" } };
+
+        const extractValue = (item) => {
+          if (typeof item === "string") return item;
+          if (item && typeof item === "object" && "type" in item && "value" in item) return item.value;
+          throw new Error("Each doc must be a string or an object with {type, value}");
+        };
+        const processedDocs = docs.map(extractValue);
+        const targetDocs = topics ? topics.map(extractValue) : processedDocs;
+
+        const response = await fetch("https://api.openai.com/v1/embeddings", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${env["OPENAI_API_KEY"]}`,
+            ...(env["OPENAI_ORG_ID"] && { "OpenAI-Organization": env["OPENAI_ORG_ID"] }),
+          },
+          body: JSON.stringify({ model, input: [...processedDocs, ...targetDocs] }),
+        });
+
+        if (!response.ok) {
+          const message = await response.text();
+          return { error: { code: response.status, message } };
+        }
+        const result = await response.json();
+        if (!Array.isArray(result?.data))
+          return { error: { code: 500, message: "OpenAI result.data not an array" }, ...result };
+
+        const embeddings = result.data.map((d) => d.embedding);
+        const docEmbeddings = embeddings.slice(0, processedDocs.length);
+        const topicEmbeddings = topics ? embeddings.slice(processedDocs.length) : docEmbeddings;
+
+        const similarity = docEmbeddings.map((docEmb) => {
+          const docMagnitude = Math.sqrt(docEmb.reduce((sum, val) => sum + val * val, 0));
+          return topicEmbeddings.map((topicEmb) => {
+            const topicMagnitude = Math.sqrt(topicEmb.reduce((sum, val) => sum + val * val, 0));
+            const dotProduct = docEmb.reduce((sum, val, i) => sum + val * topicEmb[i], 0);
+            return Number((dotProduct / (docMagnitude * topicMagnitude)).toFixed(precision));
+          });
+        });
+
+        const usage = { prompt_tokens: result.usage?.prompt_tokens ?? result.usage?.input_tokens ?? 0 };
+        return { model, similarity, usage };
+      } catch (error) {
+        return { error: { code: 400, message: error.message } };
+      }
+    },
+
+    cost: async ({ model, usage }) => {
+      const [input] = openaiCost[model] ?? [0, 0];
+      return { cost: ((usage?.prompt_tokens ?? usage?.input_tokens) * input) / 1e6 || 0 };
+    },
+  },
 };
 
 let openrouterModels;
