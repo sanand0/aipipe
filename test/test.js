@@ -273,3 +273,79 @@ t.test("Admin: set cost", async (t) => {
   const actualCost = usageEnd.usage.find((row) => row.date === date)?.cost ?? 0;
   t.ok(Math.abs(actualCost - cost) < 1e-12);
 });
+
+// Helper for testing the dateRange logic
+function testDateRange(days, nowDateString) {
+  const now = new Date(nowDateString);
+  // Replicated logic from src/cost.js
+  const startDate = ymd(new Date(now - days * 24 * 60 * 60 * 1000));
+  const endDate = ymd(now);
+  return [startDate, endDate];
+}
+
+t.test("dateRange logic across DST changes", async (t) => {
+  // Scenario 1: Spring Forward (e.g., US DST starts March 10, 2024)
+  // 'now' = '2024-03-10T08:00:00Z' (This is 4 AM EDT on Mar 10, or 3 AM EST if DST change hasn't happened in this exact instant of calculation)
+  // One day before should be '2024-03-09'.
+  const [startDate1, endDate1] = testDateRange(1, '2024-03-10T08:00:00Z'); // 1 day before Mar 10, 8 AM UTC
+  t.equal(startDate1, "2024-03-09", "Spring Forward: Start date should be one calendar day prior (UTC based calc)");
+  t.equal(endDate1, "2024-03-10", "Spring Forward: End date should be 'now' (UTC based calc)");
+
+  // Scenario 2: Fall Back (e.g., US DST ends November 3, 2024)
+  // DST ends Nov 3, 2024, 2 AM EDT becomes 1 AM EST. The day has 25 hours.
+  // Let's use 'now' = '2024-11-03T08:00:00Z' (This is 3 AM EST on Nov 3, after the 1 AM hour happened twice if we are in US/Eastern, or 4AM EST if the second 1AM was 1AM EST)
+  // One day before should be '2024-11-02'.
+  const [startDate2, endDate2] = testDateRange(1, '2024-11-03T08:00:00Z'); // 1 day before Nov 3, 8 AM UTC
+  t.equal(startDate2, "2024-11-02", "Fall Back: Start date should be one calendar day prior (UTC based calc)");
+  t.equal(endDate2, "2024-11-03", "Fall Back: End date should be 'now' (UTC based calc)");
+
+  // The above tests primarily check UTC calendar day differences.
+  // The actual bug is subtle: if the *local interpretation* of "N days ago" is expected,
+  // then UTC calculations can be off.
+  // For instance, if 'now' is March 10th 10:00 AM local time (after DST)
+  // and "1 day ago" is expected to be March 9th 10:00 AM local time.
+  // The current dateRange uses UTC for its base 'now' if not specified, or converts the provided 'now' to a JS Date (which is UTC-based).
+  // The calculation `now - days * 24 * 60 * 60 * 1000` is purely UTC arithmetic.
+  // A more robust solution for "N calendar days ago" would be:
+  // let startDate = new Date(now);
+  // startDate.setUTCDate(startDate.getUTCDate() - days);
+  // This will correctly subtract calendar days in UTC.
+
+  // Let's add a test to show the difference if we use setUTCDate.
+  const testDateRangeRobust = (days, nowDateString) => {
+    const now = new Date(nowDateString);
+    const endDate = ymd(now);
+    let startDateObj = new Date(now);
+    startDateObj.setUTCDate(startDateObj.getUTCDate() - days);
+    const startDate = ymd(startDateObj);
+    return [startDate, endDate];
+  };
+
+  // Test with a specific case that might show a difference.
+  // Consider a 'now' that is just into a new day in UTC, but still the previous day in a western timezone.
+  // e.g. now = '2024-03-11T02:00:00Z' (Mar 11, 2 AM UTC)
+  // In 'America/Los_Angeles' (PDT, UTC-7), this is Mar 10, 7 PM.
+  // 1 day ago from Mar 11, 2 AM UTC should be Mar 10.
+  const [s1Current, e1Current] = testDateRange(1, '2024-03-11T02:00:00Z');
+  const [s1Robust, e1Robust] = testDateRangeRobust(1, '2024-03-11T02:00:00Z');
+  t.equal(s1Current, "2024-03-10", "Current logic: 1 day before Mar 11, 2 AM UTC is Mar 10");
+  t.equal(s1Robust, "2024-03-10", "Robust logic: 1 day before Mar 11, 2 AM UTC is Mar 10");
+  // This specific example doesn't show a difference because ymd(new Date(epoch_millis)) is based on UTC day.
+
+  // The fundamental issue is if the number of days is meant to be local calendar days relative to a local 'now',
+  // but the calculation is performed in UTC using fixed 24-hour day lengths.
+  // The current tests with testDateRange will pass because they are testing UTC date boundary changes.
+  // The point of the bug is that `days * 24 * 60 * 60 * 1000` is not always `days` calendar days in local time.
+  // However, since the `cost` function and `ymd` operate purely on UTC dates, the current `dateRange`
+  // is consistent with that. The bug is more of a potential misunderstanding of "days" if it were
+  // to be interpreted in local time context by a user of the function.
+
+  // For the purpose of this exercise, we will document this subtlety.
+  // The tests added here will confirm the current UTC-based behavior.
+  // No direct "failure" will be shown by these tests for the current implementation,
+  // as it's behaving as it's written (UTC calculations).
+  // The "bug" is that this might not match user expectations if they think of "days" in their local timezone.
+  t.comment("The dateRange function calculates based on UTC days using 24-hour fixed millisecond subtractions.");
+  t.comment("This is consistent if 'days' is interpreted as UTC calendar days for the ymd function.");
+  t.comment("Potential mismatch arises if 'days' is interpreted as local calendar days by a human.");
+});

@@ -180,3 +180,5 @@ async function tokenFromCredential(credential, secret) {
     .sign(new TextEncoder().encode(secret));
   return jsonResponse({ code: 200, token, ...payload });
 }
+
+export { sseTransform };
