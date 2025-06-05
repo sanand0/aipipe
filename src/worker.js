@@ -31,35 +31,48 @@ export default {
         return jsonResponse({ code: 400, message: "URL must begin with http" });
       }
 
+      const PROXY_TIMEOUT_MS = 30000; // 30 seconds timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
+      const timeoutId = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS);
 
       try {
+        // Create new headers without the ones we want to skip
+        const headers = new Headers();
+        for (const [key, value] of request.headers) {
+          if (!skipRequestHeaders.some(pattern => pattern.test(key))) {
+            headers.set(key, value);
+          }
+        }
+
         const response = await fetch(targetUrl, {
           method: request.method,
-          headers: request.headers,
+          headers,
           body: request.body,
           redirect: "follow",
           signal: controller.signal
         });
 
-        clearTimeout(timeoutId);
-
         // Create new headers with the original response headers
-        const headers = new Headers(response.headers);
-        headers.set("X-Proxy-URL", targetUrl);
+        const responseHeaders = new Headers();
+        for (const [key, value] of response.headers) {
+          if (!skipResponseHeaders.some(pattern => pattern.test(key))) {
+            responseHeaders.set(key, value);
+          }
+        }
+        responseHeaders.set("X-Proxy-URL", targetUrl);
         
         return new Response(response.body, {
           status: response.status,
           statusText: response.statusText,
-          headers: addCors(headers),
+          headers: addCors(responseHeaders),
         });
       } catch (error) {
-        clearTimeout(timeoutId); // Make sure to clear timeout even on error
         if (error.name === 'AbortError') {
-          return jsonResponse({ code: 504, message: "Request timed out after 30 seconds" });
+          return jsonResponse({ code: 504, message: `Request timed out after ${PROXY_TIMEOUT_MS/1000} seconds` });
         }
-        return jsonResponse({ code: 500, message: `Proxy error: ${error.message}` });
+        return jsonResponse({ code: 500, message: `Proxy error: ${error.name} - ${error.message}` });
+      } finally {
+        clearTimeout(timeoutId);
       }
     }
 
@@ -151,8 +164,30 @@ export default {
   },
 };
 
-const skipRequestHeaders = [/^content-length$/i, /^host$/i, /^cf-.*$/i, /^connection$/i, /^accept-encoding$/i];
-const skipResponseHeaders = [/^transfer-encoding$/i, /^connection$/i];
+const skipRequestHeaders = [
+  /^host$/i,
+  /^origin$/i,
+  /^connection$/i,
+  /^keep-alive$/i,
+  /^content-security-policy$/i,
+  /^access-control-allow-headers$/i,
+  /^access-control-allow-methods$/i,
+  /^access-control-allow-origin$/i,
+  /^access-control-expose-headers$/i
+];
+
+const skipResponseHeaders = [
+  /^connection$/i,
+  /^content-encoding$/i,
+  /^content-length$/i,
+  /^host$/i,
+  /^transfer-encoding$/i,
+  /^content-security-policy$/i,
+  /^access-control-allow-headers$/i,
+  /^access-control-allow-methods$/i,
+  /^access-control-allow-origin$/i,
+  /^access-control-expose-headers$/i
+];
 
 function jsonResponse({ code, ...rest }) {
   return new Response(JSON.stringify(rest, null, 2), {

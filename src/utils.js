@@ -14,6 +14,7 @@ export function addCors(headers) {
   headers.set("Access-Control-Allow-Origin", "*");
   headers.set("Access-Control-Allow-Methods", "GET, POST");
   headers.set("Access-Control-Allow-Headers", "Authorization, Content-Type");
+  headers.set("Access-Control-Expose-Headers", "*");
   return headers;
 }
 
