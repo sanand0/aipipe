@@ -17,7 +17,8 @@ const adminEmail = (process.env.ADMIN_EMAILS || "admin@example.com").split(/[,\s
 
 async function fetch(path, { headers, ...params } = {}) {
   const url = `${BASE_URL}${path}`;
-  return await globalThis.fetch(url, { headers: { "Content-Type": "application/json", ...headers }, ...params });
+  const defaultHeaders = path.startsWith("/proxy/") ? {} : { "Content-Type": "application/json" };
+  return await globalThis.fetch(url, { headers: { ...defaultHeaders, ...headers }, ...params });
 }
 
 async function getUsage(token) {
@@ -272,4 +273,140 @@ t.test("Admin: set cost", async (t) => {
   const usageEnd = await getUsage(token);
   const actualCost = usageEnd.usage.find((row) => row.date === date)?.cost ?? 0;
   t.ok(Math.abs(actualCost - cost) < 1e-12);
+});
+
+t.test("Proxy API", async (t) => {
+  // Test successful request
+  const res1 = await fetch("/proxy/https://httpbin.org/get?x=1");
+  t.equal(res1.status, 200);
+  const body1 = await res1.json();
+  t.equal(body1.args.x, "1");
+  t.equal(res1.headers.get("X-Proxy-URL"), "https://httpbin.org/get?x=1");
+
+  // Test invalid URL
+  const res2 = await fetch("/proxy/ftp://example.com");
+  t.equal(res2.status, 400);
+  const body2 = await res2.json();
+  t.match(body2.message, /URL must begin with http/);
+
+  // Test timeout - using a URL that will definitely timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 1000); // Force timeout after 1s
+  try {
+    const res3 = await fetch("/proxy/https://httpbin.org/delay/35", {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    t.fail("Request should have timed out");
+  } catch (error) {
+    clearTimeout(timeoutId);
+    t.equal(error.name, "AbortError");
+  }
+
+  // Test request method and headers preservation
+  const res4 = await fetch("/proxy/https://httpbin.org/post", {
+    method: "POST",
+    headers: {
+      "X-Custom-Header": "test-value",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ test: true })
+  });
+  t.equal(res4.status, 200);
+  const body4 = await res4.json();
+  t.equal(body4.headers["X-Custom-Header"], "test-value");
+  t.equal(body4.headers["Content-Type"], "application/json");
+  t.equal(body4.json.test, true);
+
+  // Test response headers stripping
+  const res6 = await fetch("/proxy/https://httpbin.org/response-headers", {
+    method: "GET",
+    headers: {
+      "X-Response-Headers": "connection,content-encoding,content-length,host,transfer-encoding,content-security-policy,access-control-allow-headers,access-control-allow-methods,access-control-allow-origin,access-control-expose-headers",
+      "Connection": "close",
+      "Host": "example.com",
+      "Content-Security-Policy": "default-src 'self'",
+      "Access-Control-Allow-Headers": "custom",
+      "Access-Control-Allow-Methods": "PUT",
+      "Access-Control-Allow-Origin": "https://example.com",
+      "Access-Control-Expose-Headers": "custom"
+    }
+  });
+  t.equal(res6.status, 200);
+  
+  // Verify that our CORS headers are set
+  t.equal(res6.headers.get("Access-Control-Allow-Origin"), "*");
+  t.equal(res6.headers.get("Access-Control-Allow-Methods"), "GET, POST");
+  t.equal(res6.headers.get("Access-Control-Allow-Headers"), "Authorization, Content-Type");
+  t.equal(res6.headers.get("Access-Control-Expose-Headers"), "*");
+
+  // Verify that the original headers are stripped
+  const body6 = await res6.json();
+  
+  // Check that none of our test headers are in the response
+  const testHeaders = [
+    "connection",
+    "host",
+    "content-security-policy",
+    "access-control-allow-headers",
+    "access-control-allow-methods",
+    "access-control-allow-origin",
+    "access-control-expose-headers"
+  ];
+
+  for (const header of testHeaders) {
+    t.notOk(body6[header], `Header ${header} should be stripped`);
+  }
+
+  // Test comprehensive header stripping
+  const res7 = await fetch("/proxy/https://httpbin.org/response-headers", {
+    method: "GET",
+    headers: {
+      // Request headers to skip (only testing ones we can safely set)
+      "Origin": "https://example.com",
+      
+      // Response headers to strip (only testing ones we can safely set)
+      "Content-Encoding": "gzip",
+      "Content-Length": "123",
+      
+      // OpenRouter security headers
+      "Content-Security-Policy": "default-src 'self'",
+      "Access-Control-Allow-Headers": "custom",
+      "Access-Control-Allow-Methods": "PUT",
+      "Access-Control-Allow-Origin": "https://example.com",
+      "Access-Control-Expose-Headers": "custom",
+      
+      // Tell httpbin to echo these headers
+      "X-Response-Headers": "origin,content-encoding,content-length,content-security-policy,access-control-allow-headers,access-control-allow-methods,access-control-allow-origin,access-control-expose-headers"
+    }
+  });
+  
+  t.equal(res7.status, 200);
+  const body7 = await res7.json();
+  console.log('Comprehensive test response:', JSON.stringify(body7, null, 2));
+
+  // Verify all headers are stripped
+  const allHeaders = [
+    // Request headers (only testing ones we can safely set)
+    "origin",
+    // Response headers (only testing ones we can safely set)
+    "content-encoding",
+    "content-length",
+    // Security headers
+    "content-security-policy",
+    "access-control-allow-headers",
+    "access-control-allow-methods",
+    "access-control-allow-origin",
+    "access-control-expose-headers"
+  ];
+
+  for (const header of allHeaders) {
+    t.notOk(body7[header], `Header ${header} should be stripped`);
+  }
+
+  // Verify CORS headers are set
+  t.equal(res7.headers.get("Access-Control-Allow-Origin"), "*");
+  t.equal(res7.headers.get("Access-Control-Allow-Methods"), "GET, POST");
+  t.equal(res7.headers.get("Access-Control-Allow-Headers"), "Authorization, Content-Type");
+  t.equal(res7.headers.get("Access-Control-Expose-Headers"), "*");
 });

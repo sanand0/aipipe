@@ -108,6 +108,38 @@ Response:
 }
 ```
 
+**`GET /proxy/[URL]`**: Proxies requests to the specified URL, bypassing CORS restrictions. No authentication required.
+
+**Example**: Get contents of a URL
+
+```bash
+curl "https://aipipe.org/proxy/https://httpbin.org/get?x=1"
+```
+
+Response:
+
+```json
+{
+  "args": {
+    "x": "1"
+  },
+  "headers": {
+    "Accept": "*/*",
+    "Host": "httpbin.org",
+    "User-Agent": "curl/8.5.0"
+  },
+  "origin": "45.123.26.54",
+  "url": "https://httpbin.org/get?x=1"
+}
+```
+
+Notes:
+- The response includes the original URL in the `X-Proxy-URL` header
+- URLs must begin with `http` or `https`
+- Requests timeout after 30 seconds
+- All HTTP methods (GET, POST, etc.) and headers are preserved
+- CORS headers are added for browser compatibility
+
 **`GET token?credential=...`**: Converts a Google Sign-In credential into an AI Pipe token:
 
 - When a user clicks "Sign in with Google" on the login page, Google's client library returns a JWT credential

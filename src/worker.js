@@ -8,9 +8,7 @@ export default {
   async fetch(request, env) {
     // If the request is a preflight request, return early
     if (request.method == "OPTIONS")
-      return new Response(null, {
-        headers: addCors(new Headers({ "Access-Control-Max-Age": "86400" })),
-      });
+      return new Response(null, { headers: addCors(new Headers({ "Access-Control-Max-Age": "86400" })) });
 
     // We use providers to handle different LLMs.
     // The provider is the first part of the path between /.../ -- e.g. /openai/
@@ -21,8 +19,47 @@ export default {
     if (provider == "token") return await tokenFromCredential(url.searchParams.get("credential"), env.AIPIPE_SECRET);
 
     // Check if the URL matches a valid provider. Else let the user know
-    if (!providers[provider] && provider != "usage" && provider != "admin")
+    if (!providers[provider] && provider != "usage" && provider != "admin" && provider != "proxy")
       return jsonResponse({ code: 404, message: `Unknown provider: ${provider}` });
+
+    // Handle proxy requests
+    if (provider === "proxy") {
+      const targetUrl = request.url.split("/proxy/")[1]; // Remove /proxy/ from the path
+      if (!targetUrl.startsWith("http")) {
+        return jsonResponse({ code: 400, message: "URL must begin with http" });
+      }
+
+      const PROXY_TIMEOUT_MS = 30000; // 30 seconds timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS);
+
+      // Create new headers without the ones we want to skip
+      let response;
+      try {
+        response = await fetch(targetUrl, {
+          method: request.method,
+          headers: updateHeaders(request.headers, skipRequestHeaders),
+          body: request.body,
+          redirect: "follow",
+          signal: controller.signal,
+        });
+      } catch (error) {
+        return jsonResponse(
+          error.name === "AbortError"
+            ? { code: 504, message: `Request timed out after ${PROXY_TIMEOUT_MS / 1000} seconds` }
+            : { code: 500, message: `Proxy error: ${error.name} - ${error.message}` }
+        );
+      } finally {
+        clearTimeout(timeoutId);
+      }
+
+      // Create new headers with the original response headers
+      return new Response(response.body, {
+        headers: addCors(updateHeaders(response.headers, skipResponseHeaders, { "X-Proxy-URL": targetUrl })),
+        status: response.status,
+        statusText: response.statusText,
+      });
+    }
 
     // Token must be present in Authorization: Bearer
     const token = (request.headers.get("Authorization") ?? "").replace(/^Bearer\s*/, "").trim();
@@ -113,7 +150,7 @@ export default {
 };
 
 const skipRequestHeaders = [/^content-length$/i, /^host$/i, /^cf-.*$/i, /^connection$/i, /^accept-encoding$/i];
-const skipResponseHeaders = [/^transfer-encoding$/i, /^connection$/i];
+const skipResponseHeaders = [/^transfer-encoding$/i, /^connection$/i, /^content-security-policy$/i];
 
 function jsonResponse({ code, ...rest }) {
   return new Response(JSON.stringify(rest, null, 2), {
