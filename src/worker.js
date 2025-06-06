@@ -8,9 +8,7 @@ export default {
   async fetch(request, env) {
     // If the request is a preflight request, return early
     if (request.method == "OPTIONS")
-      return new Response(null, {
-        headers: addCors(new Headers({ "Access-Control-Max-Age": "86400" })),
-      });
+      return new Response(null, { headers: addCors(new Headers({ "Access-Control-Max-Age": "86400" })) });
 
     // We use providers to handle different LLMs.
     // The provider is the first part of the path between /.../ -- e.g. /openai/
@@ -35,45 +33,32 @@ export default {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS);
 
+      // Create new headers without the ones we want to skip
+      let response;
       try {
-        // Create new headers without the ones we want to skip
-        const headers = new Headers();
-        for (const [key, value] of request.headers) {
-          if (!skipRequestHeaders.some(pattern => pattern.test(key))) {
-            headers.set(key, value);
-          }
-        }
-
-        const response = await fetch(targetUrl, {
+        response = await fetch(targetUrl, {
           method: request.method,
-          headers,
+          headers: updateHeaders(request.headers, skipRequestHeaders),
           body: request.body,
           redirect: "follow",
-          signal: controller.signal
-        });
-
-        // Create new headers with the original response headers
-        const responseHeaders = new Headers();
-        for (const [key, value] of response.headers) {
-          if (!skipResponseHeaders.some(pattern => pattern.test(key))) {
-            responseHeaders.set(key, value);
-          }
-        }
-        responseHeaders.set("X-Proxy-URL", targetUrl);
-        
-        return new Response(response.body, {
-          status: response.status,
-          statusText: response.statusText,
-          headers: addCors(responseHeaders),
+          signal: controller.signal,
         });
       } catch (error) {
-        if (error.name === 'AbortError') {
-          return jsonResponse({ code: 504, message: `Request timed out after ${PROXY_TIMEOUT_MS/1000} seconds` });
-        }
-        return jsonResponse({ code: 500, message: `Proxy error: ${error.name} - ${error.message}` });
+        return jsonResponse(
+          error.name === "AbortError"
+            ? { code: 504, message: `Request timed out after ${PROXY_TIMEOUT_MS / 1000} seconds` }
+            : { code: 500, message: `Proxy error: ${error.name} - ${error.message}` }
+        );
       } finally {
         clearTimeout(timeoutId);
       }
+
+      // Create new headers with the original response headers
+      return new Response(response.body, {
+        headers: addCors(updateHeaders(response.headers, skipResponseHeaders, { "X-Proxy-URL": targetUrl })),
+        status: response.status,
+        statusText: response.statusText,
+      });
     }
 
     // Token must be present in Authorization: Bearer
@@ -164,30 +149,8 @@ export default {
   },
 };
 
-const skipRequestHeaders = [
-  /^host$/i,
-  /^origin$/i,
-  /^connection$/i,
-  /^keep-alive$/i,
-  /^content-security-policy$/i,
-  /^access-control-allow-headers$/i,
-  /^access-control-allow-methods$/i,
-  /^access-control-allow-origin$/i,
-  /^access-control-expose-headers$/i
-];
-
-const skipResponseHeaders = [
-  /^connection$/i,
-  /^content-encoding$/i,
-  /^content-length$/i,
-  /^host$/i,
-  /^transfer-encoding$/i,
-  /^content-security-policy$/i,
-  /^access-control-allow-headers$/i,
-  /^access-control-allow-methods$/i,
-  /^access-control-allow-origin$/i,
-  /^access-control-expose-headers$/i
-];
+const skipRequestHeaders = [/^content-length$/i, /^host$/i, /^cf-.*$/i, /^connection$/i, /^accept-encoding$/i];
+const skipResponseHeaders = [/^transfer-encoding$/i, /^connection$/i, /^content-security-policy$/i];
 
 function jsonResponse({ code, ...rest }) {
   return new Response(JSON.stringify(rest, null, 2), {
