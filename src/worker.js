@@ -4,6 +4,9 @@ import { providers } from "./providers.js";
 import { updateHeaders, addCors, createToken } from "./utils.js";
 export { AIPipeCost } from "./cost.js";
 
+const SKIP_REQUEST_HEADERS = [/^content-length$/i, /^host$/i, /^cf-.*$/i, /^connection$/i, /^accept-encoding$/i];
+const SKIP_RESPONSE_HEADERS = [/^transfer-encoding$/i, /^connection$/i, /^content-security-policy$/i];
+
 export default {
   async fetch(request, env) {
     // If the request is a preflight request, return early
@@ -22,44 +25,7 @@ export default {
     if (!providers[provider] && provider != "usage" && provider != "admin" && provider != "proxy")
       return jsonResponse({ code: 404, message: `Unknown provider: ${provider}` });
 
-    // Handle proxy requests
-    if (provider === "proxy") {
-      const targetUrl = request.url.split("/proxy/")[1]; // Remove /proxy/ from the path
-      if (!targetUrl.startsWith("http")) {
-        return jsonResponse({ code: 400, message: "URL must begin with http" });
-      }
-
-      const PROXY_TIMEOUT_MS = 30000; // 30 seconds timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS);
-
-      // Create new headers without the ones we want to skip
-      let response;
-      try {
-        response = await fetch(targetUrl, {
-          method: request.method,
-          headers: updateHeaders(request.headers, skipRequestHeaders),
-          body: request.body,
-          redirect: "follow",
-          signal: controller.signal,
-        });
-      } catch (error) {
-        return jsonResponse(
-          error.name === "AbortError"
-            ? { code: 504, message: `Request timed out after ${PROXY_TIMEOUT_MS / 1000} seconds` }
-            : { code: 500, message: `Proxy error: ${error.name} - ${error.message}` }
-        );
-      } finally {
-        clearTimeout(timeoutId);
-      }
-
-      // Create new headers with the original response headers
-      return new Response(response.body, {
-        headers: addCors(updateHeaders(response.headers, skipResponseHeaders, { "X-Proxy-URL": targetUrl })),
-        status: response.status,
-        statusText: response.statusText,
-      });
-    }
+    if (provider === "proxy") return proxyRequest(request);
 
     // Token must be present in Authorization: Bearer
     const token = (request.headers.get("Authorization") ?? "").replace(/^Bearer\s*/, "").trim();
@@ -121,7 +87,7 @@ export default {
     // Make the actual request
     const response = await fetch(targetUrl, {
       method: request.method,
-      headers: updateHeaders(headers, skipRequestHeaders),
+      headers: updateHeaders(headers, SKIP_REQUEST_HEADERS),
       ...params,
     });
 
@@ -142,15 +108,12 @@ export default {
     // TODO: If the response is not JSON or SSE (e.g. image), handle cost.
 
     return new Response(body, {
-      headers: addCors(updateHeaders(response.headers, skipResponseHeaders)),
+      headers: addCors(updateHeaders(response.headers, SKIP_RESPONSE_HEADERS)),
       status: response.status,
       statusText: response.statusText,
     });
   },
 };
-
-const skipRequestHeaders = [/^content-length$/i, /^host$/i, /^cf-.*$/i, /^connection$/i, /^accept-encoding$/i];
-const skipResponseHeaders = [/^transfer-encoding$/i, /^connection$/i, /^content-security-policy$/i];
 
 function jsonResponse({ code, ...rest }) {
   return new Response(JSON.stringify(rest, null, 2), {
@@ -159,7 +122,44 @@ function jsonResponse({ code, ...rest }) {
   });
 }
 
-/* Process an SSE stream to extract model, usage and add cost based on that */
+async function proxyRequest(request) {
+  const targetUrl = request.url.split("/proxy/")[1];
+  if (!targetUrl.startsWith("http")) return jsonResponse({ code: 400, message: "URL must begin with http" });
+
+  // abort stalled fetches so workers don't hang
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+  let response;
+  try {
+    // mirror the request while stripping unsafe headers
+    response = await fetch(targetUrl, {
+      method: request.method,
+      headers: updateHeaders(request.headers, SKIP_REQUEST_HEADERS),
+      body: request.body,
+      redirect: "follow",
+      signal: controller.signal,
+    });
+  } catch (error) {
+    clearTimeout(timeoutId);
+    return jsonResponse(
+      error.name === "AbortError"
+        ? { code: 504, message: "Request timed out after 30 seconds" }
+        : { code: 500, message: `Proxy error: ${error.name} - ${error.message}` },
+    );
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  // return the upstream response with cors and stripped headers
+  return new Response(response.body, {
+    headers: addCors(updateHeaders(response.headers, SKIP_RESPONSE_HEADERS, { "X-Proxy-URL": targetUrl })),
+    status: response.status,
+    statusText: response.statusText,
+  });
+}
+
+// Process an SSE stream to extract model, usage and add cost based on that
 function sseTransform(addCost) {
   let model, usage;
   return new TransformStream({
@@ -170,14 +170,13 @@ function sseTransform(addCost) {
       const lines = (this.buffer + new TextDecoder().decode(chunk, { stream: true })).split("\n");
       this.buffer = lines.pop() || ""; // Store partial line
       lines.forEach((line) => {
-        if (line.startsWith("data: ")) {
+        if (line.startsWith("data: "))
           try {
             let event = JSON.parse(line.slice(6));
             // OpenAI's Response API returns the event inside a { response }
             event = event.response ?? event;
             [model, usage] = [model ?? event.model, usage ?? event.usage];
           } catch {}
-        }
       });
       controller.enqueue(chunk);
     },
@@ -201,7 +200,7 @@ async function validateToken(token, secret) {
   return payload;
 }
 
-/** Return { token } given valid Google credentials */
+// Return { token } given valid Google credentials
 async function tokenFromCredential(credential, secret) {
   const JWKS = jose.createRemoteJWKSet(new URL("https://www.googleapis.com/oauth2/v3/certs"));
   const { payload } = await jose.jwtVerify(credential, JWKS, {
