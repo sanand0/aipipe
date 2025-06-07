@@ -134,6 +134,7 @@ Response:
 ```
 
 Notes:
+
 - The response includes the original URL in the `X-Proxy-URL` header
 - URLs must begin with `http` or `https`
 - Requests timeout after 30 seconds
@@ -165,10 +166,10 @@ Response:
   "data": [
     {
       "id": "google/gemini-2.5-pro-preview-03-25",
-      "name": "Google: Gemini 2.5 Pro Preview"
+      "name": "Google: Gemini 2.5 Pro Preview",
       // ...
-    }
-  ]
+    },
+  ],
 }
 ```
 
@@ -187,7 +188,7 @@ Response:
   "id": "gen-...",
   "provider": "Google",
   "model": "google/gemini-2.0-flash-lite-001",
-  "object": "chat.completion"
+  "object": "chat.completion",
   // ...
 }
 ```
@@ -212,10 +213,10 @@ Response:
       "id": "gpt-4o-audio-preview-2024-12-17",
       "object": "model",
       "created": 1734034239,
-      "owned_by": "system"
-    }
+      "owned_by": "system",
+    },
     // ...
-  ]
+  ],
 }
 ```
 
@@ -238,10 +239,10 @@ Response:
   "output": [
     {
       "role": "assistant",
-      "content": [{ "text": "2 + 2 equals 4." }]
+      "content": [{ "text": "2 + 2 equals 4." }],
       // ...
-    }
-  ]
+    },
+  ],
 }
 ```
 
@@ -263,16 +264,16 @@ Response:
       "object": "embedding",
       "index": 0,
       "embedding": [
-        0.010576399, -0.037246477
+        0.010576399, -0.037246477,
         // ...
-      ]
-    }
+      ],
+    },
   ],
   "model": "text-embedding-3-small",
   "usage": {
     "prompt_tokens": 8,
-    "total_tokens": 8
-  }
+    "total_tokens": 8,
+  },
 }
 ```
 
@@ -299,10 +300,10 @@ Response:
 {
   "model": "text-embedding-3-small",
   "similarity": [
-    [0.82345, 0.12345],  // Similarity scores for first doc against each topic
-    [0.81234, 0.23456]   // Similarity scores for second doc against each topic
+    [0.82345, 0.12345], // Similarity scores for first doc against each topic
+    [0.81234, 0.23456], // Similarity scores for second doc against each topic
   ],
-  "tokens": 42
+  "tokens": 42,
 }
 ```
 
@@ -327,11 +328,11 @@ Response:
 {
   "model": "text-embedding-3-small",
   "similarity": [
-    [1.00000, 0.82345, 0.71234],  // First doc's similarity with all docs
-    [0.82345, 1.00000, 0.67890],  // Second doc's similarity with all docs
-    [0.71234, 0.67890, 1.00000]   // Third doc's similarity with all docs
+    [1.0, 0.82345, 0.71234], // First doc's similarity with all docs
+    [0.82345, 1.0, 0.6789], // Second doc's similarity with all docs
+    [0.71234, 0.6789, 1.0], // Third doc's similarity with all docs
   ],
-  "tokens": 63
+  "tokens": 63,
 }
 ```
 
@@ -353,6 +354,7 @@ curl https://aipipe.org/similarity -H "Authorization: $AIPIPE_TOKEN" \
 ```
 
 Parameters:
+
 - `docs`: Array of strings or objects with `{type, value}`. Required.
 - `topics`: Optional array of strings or objects with `{type, value}`. If not provided, calculates similarity between all documents.
 - `model`: Optional embedding model name. Defaults to "text-embedding-3-small".
@@ -457,10 +459,10 @@ Response:
     {
       "email": "test@example.com",
       "date": "2025-04-18",
-      "cost": 25.5
-    }
+      "cost": 25.5,
+    },
     // ...
-  ]
+  ],
 }
 ```
 

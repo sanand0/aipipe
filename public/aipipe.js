@@ -8,7 +8,7 @@ function getProfile() {
     }
 
   localStorage.setItem("aipipe", JSON.stringify(profile));
-  history.replaceState({}, "", location.pathname + (params.length ? "?" + params : "") + location.hash);
+  history.replaceState({}, "", location.pathname + (params.size ? "?" + params : "") + location.hash);
 
   return profile;
 }

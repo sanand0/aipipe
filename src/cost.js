@@ -46,7 +46,7 @@ export class AIPipeCost extends DurableObject {
       "INSERT OR REPLACE INTO cost (email, date, cost) VALUES (?, ?, ?)",
       email,
       date,
-      cost
+      cost,
     );
   }
 

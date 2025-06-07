@@ -191,7 +191,7 @@ t.test("Similarity API", async (t) => {
     body: JSON.stringify({
       docs: ["The quick brown fox jumps over the lazy dog"],
       topics: ["fox jumping", "dog sleeping"],
-      model: "text-embedding-3-small"
+      model: "text-embedding-3-small",
     }),
   });
   t.equal(res.status, 200);
@@ -294,7 +294,7 @@ t.test("Proxy API", async (t) => {
   const timeoutId = setTimeout(() => controller.abort(), 1000); // Force timeout after 1s
   try {
     const res3 = await fetch("/proxy/https://httpbin.org/delay/35", {
-      signal: controller.signal
+      signal: controller.signal,
     });
     clearTimeout(timeoutId);
     t.fail("Request should have timed out");
@@ -308,9 +308,9 @@ t.test("Proxy API", async (t) => {
     method: "POST",
     headers: {
       "X-Custom-Header": "test-value",
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
     },
-    body: JSON.stringify({ test: true })
+    body: JSON.stringify({ test: true }),
   });
   t.equal(res4.status, 200);
   const body4 = await res4.json();
@@ -322,18 +322,19 @@ t.test("Proxy API", async (t) => {
   const res6 = await fetch("/proxy/https://httpbin.org/response-headers", {
     method: "GET",
     headers: {
-      "X-Response-Headers": "connection,content-encoding,content-length,host,transfer-encoding,content-security-policy,access-control-allow-headers,access-control-allow-methods,access-control-allow-origin,access-control-expose-headers",
-      "Connection": "close",
-      "Host": "example.com",
+      "X-Response-Headers":
+        "connection,content-encoding,content-length,host,transfer-encoding,content-security-policy,access-control-allow-headers,access-control-allow-methods,access-control-allow-origin,access-control-expose-headers",
+      Connection: "close",
+      Host: "example.com",
       "Content-Security-Policy": "default-src 'self'",
       "Access-Control-Allow-Headers": "custom",
       "Access-Control-Allow-Methods": "PUT",
       "Access-Control-Allow-Origin": "https://example.com",
-      "Access-Control-Expose-Headers": "custom"
-    }
+      "Access-Control-Expose-Headers": "custom",
+    },
   });
   t.equal(res6.status, 200);
-  
+
   // Verify that our CORS headers are set
   t.equal(res6.headers.get("Access-Control-Allow-Origin"), "*");
   t.equal(res6.headers.get("Access-Control-Allow-Methods"), "GET, POST");
@@ -342,7 +343,7 @@ t.test("Proxy API", async (t) => {
 
   // Verify that the original headers are stripped
   const body6 = await res6.json();
-  
+
   // Check that none of our test headers are in the response
   const testHeaders = [
     "connection",
@@ -351,7 +352,7 @@ t.test("Proxy API", async (t) => {
     "access-control-allow-headers",
     "access-control-allow-methods",
     "access-control-allow-origin",
-    "access-control-expose-headers"
+    "access-control-expose-headers",
   ];
 
   for (const header of testHeaders) {
@@ -363,27 +364,28 @@ t.test("Proxy API", async (t) => {
     method: "GET",
     headers: {
       // Request headers to skip (only testing ones we can safely set)
-      "Origin": "https://example.com",
-      
+      Origin: "https://example.com",
+
       // Response headers to strip (only testing ones we can safely set)
       "Content-Encoding": "gzip",
       "Content-Length": "123",
-      
+
       // OpenRouter security headers
       "Content-Security-Policy": "default-src 'self'",
       "Access-Control-Allow-Headers": "custom",
       "Access-Control-Allow-Methods": "PUT",
       "Access-Control-Allow-Origin": "https://example.com",
       "Access-Control-Expose-Headers": "custom",
-      
+
       // Tell httpbin to echo these headers
-      "X-Response-Headers": "origin,content-encoding,content-length,content-security-policy,access-control-allow-headers,access-control-allow-methods,access-control-allow-origin,access-control-expose-headers"
-    }
+      "X-Response-Headers":
+        "origin,content-encoding,content-length,content-security-policy,access-control-allow-headers,access-control-allow-methods,access-control-allow-origin,access-control-expose-headers",
+    },
   });
-  
+
   t.equal(res7.status, 200);
   const body7 = await res7.json();
-  console.log('Comprehensive test response:', JSON.stringify(body7, null, 2));
+  console.log("Comprehensive test response:", JSON.stringify(body7, null, 2));
 
   // Verify all headers are stripped
   const allHeaders = [
@@ -397,7 +399,7 @@ t.test("Proxy API", async (t) => {
     "access-control-allow-headers",
     "access-control-allow-methods",
     "access-control-allow-origin",
-    "access-control-expose-headers"
+    "access-control-expose-headers",
   ];
 
   for (const header of allHeaders) {
