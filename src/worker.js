@@ -170,14 +170,13 @@ function sseTransform(addCost) {
       const lines = (this.buffer + new TextDecoder().decode(chunk, { stream: true })).split("\n");
       this.buffer = lines.pop() || ""; // Store partial line
       lines.forEach((line) => {
-        if (line.startsWith("data: ")) {
+        if (line.startsWith("data: "))
           try {
             let event = JSON.parse(line.slice(6));
             // OpenAI's Response API returns the event inside a { response }
             event = event.response ?? event;
             [model, usage] = [model ?? event.model, usage ?? event.usage];
           } catch {}
-        }
       });
       controller.enqueue(chunk);
     },

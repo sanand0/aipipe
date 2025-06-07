@@ -6,7 +6,7 @@
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
     "test": "tap run",
-    "lint": "npx -y prettier@3.5 --print-width 120 '**/*.{js,md}' --check",
+    "lint": "npx -y prettier@3.5 --print-width 120 '**/*.{js,md}' --write",
     "prepublishOnly": "npm run lint"
   },
   "prettier": {

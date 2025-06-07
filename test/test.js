@@ -355,9 +355,7 @@ t.test("Proxy API", async (t) => {
     "access-control-expose-headers",
   ];
 
-  for (const header of testHeaders) {
-    t.notOk(body6[header], `Header ${header} should be stripped`);
-  }
+  for (const header of testHeaders) t.notOk(body6[header], `Header ${header} should be stripped`);
 
   // Test comprehensive header stripping
   const res7 = await fetch("/proxy/https://httpbin.org/response-headers", {
@@ -402,9 +400,7 @@ t.test("Proxy API", async (t) => {
     "access-control-expose-headers",
   ];
 
-  for (const header of allHeaders) {
-    t.notOk(body7[header], `Header ${header} should be stripped`);
-  }
+  for (const header of allHeaders) t.notOk(body7[header], `Header ${header} should be stripped`);
 
   // Verify CORS headers are set
   t.equal(res7.headers.get("Access-Control-Allow-Origin"), "*");
