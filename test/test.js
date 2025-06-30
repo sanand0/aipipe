@@ -293,9 +293,7 @@ t.test("Proxy API", async (t) => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 1000); // Force timeout after 1s
   try {
-    const res3 = await fetch("/proxy/https://httpbin.org/delay/35", {
-      signal: controller.signal,
-    });
+    await fetch("/proxy/https://httpbin.org/delay/35", { signal: controller.signal });
     clearTimeout(timeoutId);
     t.fail("Request should have timed out");
   } catch (error) {

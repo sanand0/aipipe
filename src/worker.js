@@ -129,17 +129,18 @@ async function proxyRequest(request) {
   // abort stalled fetches so workers don't hang
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000);
+  // mirror the request while stripping unsafe headers
+  const safeRequest = {
+    method: request.method,
+    headers: updateHeaders(request.headers, SKIP_REQUEST_HEADERS),
+    redirect: "follow",
+    signal: controller.signal,
+  };
+  if (request.method !== "GET" && request.method !== "HEAD") safeRequest.body = request.body;
 
   let response;
   try {
-    // mirror the request while stripping unsafe headers
-    response = await fetch(targetUrl, {
-      method: request.method,
-      headers: updateHeaders(request.headers, SKIP_REQUEST_HEADERS),
-      body: request.body,
-      redirect: "follow",
-      signal: controller.signal,
-    });
+    response = await fetch(targetUrl, safeRequest);
   } catch (error) {
     clearTimeout(timeoutId);
     return jsonResponse(
