@@ -19,6 +19,19 @@ export const providers = {
         (+pricing?.request || 0);
       return { cost };
     },
+    parse: (event) => {
+      event = event.response ?? event;
+      const u = event.usage;
+      return {
+        model: event.model,
+        usage: u
+          ? {
+              prompt_tokens: u.prompt_tokens ?? u.input_tokens,
+              completion_tokens: u.completion_tokens ?? u.output_tokens,
+            }
+          : undefined,
+      };
+    },
   },
 
   openai: {
@@ -48,6 +61,10 @@ export const providers = {
         (((usage?.completion_tokens ?? usage?.output_tokens) * output) / 1e6 || 0);
       return { cost };
     },
+    parse: (event) => {
+      event = event.response ?? event;
+      return { model: event.model, usage: event.usage };
+    },
   },
 
   geminiv1beta: {
@@ -60,7 +77,7 @@ export const providers = {
       }
       return {
         url: `https://generativelanguage.googleapis.com/v1beta${path}`,
-        headers: updateHeaders(request.headers, [], { "x-goog-api-key": env["GEMINI_API_KEY"] }),
+        headers: updateHeaders(request.headers, [/^authorization$/i], { "x-goog-api-key": env["GEMINI_API_KEY"] }),
         ...(json ? { body: JSON.stringify(json) } : {}),
       };
     },
@@ -71,6 +88,19 @@ export const providers = {
         (((usage?.completion_tokens ?? usage?.output_tokens) * output) / 1e6 || 0) +
         req;
       return { cost };
+    },
+    parse: (event) => {
+      event = event.response ?? event;
+      const u = event.usage ?? event.usageMetadata;
+      return {
+        model: event.model ?? event.modelVersion,
+        usage: u
+          ? {
+              prompt_tokens: u.prompt_tokens ?? u.promptTokenCount,
+              completion_tokens: u.completion_tokens ?? u.candidatesTokenCount,
+            }
+          : undefined,
+      };
     },
   },
 
@@ -198,6 +228,10 @@ const openaiCost = {
   "gpt-4o-search-preview-2025-03-11": [2.5, 10],
   "gpt-4o-search-preview": [2.5, 10],
   "gpt-4o": [2.5, 10],
+  "gpt-5-mini": [0.25, 2],
+  "gpt-5-nano": [0.05, 0.4],
+  "gpt-5-chat-latest": [1.25, 10],
+  "gpt-5": [1.25, 10],
   "o1-2024-12-17": [15, 60],
   "o1-mini-2024-09-12": [1.1, 4.4],
   "o1-mini": [1.1, 4.4],
@@ -223,11 +257,40 @@ const openaiCost = {
 const geminiCost = {
   "gemini-1.5-flash": [0.075, 0.3],
   "gemini-1.5-pro": [1.25, 5],
+  "gemini-1.5-8b": [0.0375, 0.075],
   "gemini-2.0-flash": [0.1, 0.4],
+  "gemini-2.0-flash-lite": [0.075, 0.3],
   "gemini-2.0-flash-preview-image-generation": [0.1, 0.4],
   "gemini-2.5-flash": [0.3, 2.5],
-  "gemini-2.5-flash-preview-tts": [0.3, 2.5],
+  "gemini-2.5-flash-lite": [0.1, 0.4],
+  "gemini-2.5-flash-preview-tts": [0.5, 10],
+  "gemini-2.5-pro-preview-tts": [1, 20],
   "gemini-2.5-pro": [1.25, 10],
-  "imagen-4.0-generate-001": [0, 0],
   "gemini-embedding-001": [0.15, 0],
 };
+
+export function sseTransform(provider, addCost) {
+  const parse = providers[provider]?.parse;
+  let model, usage;
+  return new TransformStream({
+    start() {
+      this.buffer = "";
+    },
+    transform(chunk, controller) {
+      const lines = (this.buffer + new TextDecoder().decode(chunk, { stream: true })).split("\n");
+      this.buffer = lines.pop() || "";
+      lines.forEach((line) => {
+        if (line.startsWith("data: "))
+          try {
+            const parsed = parse?.(JSON.parse(line.slice(6)));
+            model = model ?? parsed?.model;
+            usage = usage ?? parsed?.usage;
+          } catch {}
+      });
+      controller.enqueue(chunk);
+    },
+    async flush() {
+      await addCost({ model, usage });
+    },
+  });
+}

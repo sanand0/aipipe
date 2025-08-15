@@ -92,7 +92,7 @@ t.test("Completion and cost", async (t) => {
   const token = await testToken();
   const usageStart = await getUsage(token);
 
-  const model = "google/gemini-2.0-flash-lite-001";
+  const model = "google/gemini-2.5-flash-lite";
   const res = await fetch("/openrouter/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
@@ -131,7 +131,7 @@ t.test("Streaming completion and cost", async (t) => {
   const token = await testToken();
   const usageStart = await getUsage(token);
 
-  const model = "google/gemini-2.0-flash-lite-001";
+  const model = "google/gemini-2.5-flash-lite";
   const res = await fetch("/openrouter/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
@@ -185,7 +185,7 @@ t.test("Gemini completion and cost", async (t) => {
   const token = await testToken();
   const usageStart = await getUsage(token);
 
-  const res = await fetch("/geminiv1beta/models/gemini-1.5-flash:generateContent", {
+  const res = await fetch("/geminiv1beta/models/gemini-2.5-flash-lite:generateContent", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify({ contents: [{ parts: [{ text: "What is 2 + 2?" }] }] }),
@@ -202,7 +202,7 @@ t.test("Gemini streaming completion and cost", async (t) => {
   const token = await testToken();
   const usageStart = await getUsage(token);
 
-  const res = await fetch("/geminiv1beta/models/gemini-1.5-flash:streamGenerateContent?alt=sse", {
+  const res = await fetch("/geminiv1beta/models/gemini-2.5-flash-lite:streamGenerateContent?alt=sse", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify({ contents: [{ parts: [{ text: "What is 2 + 2?" }] }] }),

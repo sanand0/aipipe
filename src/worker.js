@@ -1,6 +1,6 @@
 import { budget, salt } from "./config.js";
 import * as jose from "jose";
-import { providers } from "./providers.js";
+import { providers, sseTransform } from "./providers.js";
 import { updateHeaders, addCors, createToken } from "./utils.js";
 export { AIPipeCost } from "./cost.js";
 
@@ -92,7 +92,9 @@ export default {
     });
 
     // Add the cost based on provider's cost
-    const addCost = async ({ model, usage }) => {
+    const parse = providers[provider].parse;
+    const addCost = async (data) => {
+      const { model, usage } = parse ? parse(data) : {};
       const { cost } = await providers[provider].cost({ model, usage });
       if (cost > 0) await aiPipeCost.add(email, cost);
     };
@@ -103,7 +105,7 @@ export default {
 
     // For streaming response, extract { model, usage } wherever it appears
     const body = contentType.includes("text/event-stream")
-      ? response.body.pipeThrough(sseTransform(addCost))
+      ? response.body.pipeThrough(sseTransform(provider, addCost))
       : response.body;
     // TODO: If the response is not JSON or SSE (e.g. image), handle cost.
 
@@ -157,41 +159,6 @@ async function proxyRequest(request) {
     headers: addCors(updateHeaders(response.headers, SKIP_RESPONSE_HEADERS, { "X-Proxy-URL": targetUrl })),
     status: response.status,
     statusText: response.statusText,
-  });
-}
-
-// Process an SSE stream to extract model, usage and add cost based on that
-function sseTransform(addCost) {
-  let model, usage;
-  return new TransformStream({
-    start() {
-      this.buffer = "";
-    },
-    transform(chunk, controller) {
-      const lines = (this.buffer + new TextDecoder().decode(chunk, { stream: true })).split("\n");
-      this.buffer = lines.pop() || ""; // Store partial line
-      lines.forEach((line) => {
-        if (line.startsWith("data: "))
-          try {
-            let event = JSON.parse(line.slice(6));
-            event = event.response ?? event;
-            model = model ?? event.model ?? event.modelVersion;
-            const u = event.usage ?? event.usageMetadata;
-            usage =
-              usage ??
-              (u
-                ? {
-                    prompt_tokens: u.prompt_tokens ?? u.promptTokenCount,
-                    completion_tokens: u.completion_tokens ?? u.candidatesTokenCount,
-                  }
-                : undefined);
-          } catch {}
-      });
-      controller.enqueue(chunk);
-    },
-    async flush() {
-      await addCost({ model, usage });
-    },
   });
 }
 
