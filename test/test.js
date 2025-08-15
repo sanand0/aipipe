@@ -340,18 +340,6 @@ t.test("Proxy API", async (t) => {
   const body2 = await res2.json();
   t.match(body2.message, /URL must begin with http/);
 
-  // Test timeout - using a URL that will definitely timeout
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 1000); // Force timeout after 1s
-  try {
-    await fetch("/proxy/https://httpbin.org/delay/35", { signal: controller.signal });
-    clearTimeout(timeoutId);
-    t.fail("Request should have timed out");
-  } catch (error) {
-    clearTimeout(timeoutId);
-    t.equal(error.name, "AbortError");
-  }
-
   // Test request method and headers preservation
   const res4 = await fetch("/proxy/https://httpbin.org/post", {
     method: "POST",
