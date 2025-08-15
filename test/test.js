@@ -459,6 +459,6 @@ t.test("Proxy API timeout", async (t) => {
       signal: AbortSignal.timeout(1000),
       headers: { Connection: "close" },
     }),
-    { name: "AbortError" },
+    { name: "TimeoutError" },
   );
 });

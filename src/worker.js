@@ -135,14 +135,13 @@ async function proxyRequest(request) {
   if (!targetUrl.startsWith("http")) return jsonResponse({ code: 400, message: "URL must begin with http" });
 
   // abort stalled fetches so workers don't hang
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  const signal = AbortSignal.timeout(30000);
   // mirror the request while stripping unsafe headers
   const safeRequest = {
     method: request.method,
     headers: updateHeaders(request.headers, SKIP_REQUEST_HEADERS),
     redirect: "follow",
-    signal: controller.signal,
+    signal,
   };
   if (request.method !== "GET" && request.method !== "HEAD") safeRequest.body = request.body;
 
@@ -150,14 +149,11 @@ async function proxyRequest(request) {
   try {
     response = await fetch(targetUrl, safeRequest);
   } catch (error) {
-    clearTimeout(timeoutId);
     return jsonResponse(
-      error.name === "AbortError"
+      error.name === "TimeoutError"
         ? { code: 504, message: "Request timed out after 30 seconds" }
         : { code: 500, message: `Proxy error: ${error.name} - ${error.message}` },
     );
-  } finally {
-    clearTimeout(timeoutId);
   }
 
   // return the upstream response with cors and stripped headers
