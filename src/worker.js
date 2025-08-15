@@ -75,7 +75,14 @@ export default {
 
     // Allow providers to transform or reject
     const path = url.pathname.slice(provider.length + 1) + url.search;
-    const { url: targetUrl, headers, error, ...params } = await providers[provider].transform({ path, request, env });
+    const {
+      url: targetUrl,
+      headers,
+      error,
+      model: tModel,
+      usage: tUsage,
+      ...params
+    } = await providers[provider].transform({ path, request, env });
     if (error) return jsonResponse(error);
 
     // For similarity provider, return the result directly
@@ -94,7 +101,9 @@ export default {
     // Add the cost based on provider's cost
     const parse = providers[provider].parse;
     const addCost = async (data) => {
-      const { model, usage } = parse ? parse(data) : {};
+      const parsed = parse ? parse(data) : {};
+      const model = parsed.model ?? tModel;
+      const usage = parsed.usage ?? tUsage;
       const { cost } = await providers[provider].cost({ model, usage });
       if (cost > 0) await aiPipeCost.add(email, cost);
     };
