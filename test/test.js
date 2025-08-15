@@ -89,7 +89,7 @@ t.test("Usage endpoint", async (t) => {
   t.ok(Array.isArray(usage.usage));
 });
 
-t.test("Completion and cost", async (t) => {
+t.test("OpenRouter completion and cost", async (t) => {
   const token = await testToken();
   const usageStart = await getUsage(token);
 
@@ -108,7 +108,7 @@ t.test("Completion and cost", async (t) => {
   t.ok(usageEnd.cost > usageStart.cost);
 });
 
-t.test("Embedding and cost", async (t) => {
+t.test("OpenAI embedding and cost", async (t) => {
   const token = await testToken();
   const usageStart = await getUsage(token);
 
@@ -128,7 +128,7 @@ t.test("Embedding and cost", async (t) => {
   t.ok(Math.abs(usageEnd.cost - usageStart.cost - 1.6e-7) < 1e-12);
 });
 
-t.test("Streaming completion and cost", async (t) => {
+t.test("OpenRouter streaming completion and cost", async (t) => {
   const token = await testToken();
   const usageStart = await getUsage(token);
 

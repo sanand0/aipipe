@@ -6,8 +6,8 @@ const { openai: openaiCost, gemini: geminiCost } = pricing;
 const tokenCost = (pricing, model, usage) => {
   const [input, output] = pricing[model] ?? [0, 0];
   return (
-    ((usage?.prompt_tokens ?? usage?.input_tokens) * input +
-      (usage?.completion_tokens ?? usage?.output_tokens) * output) /
+    ((usage?.prompt_tokens ?? usage?.input_tokens ?? 0) * input +
+      (usage?.completion_tokens ?? usage?.output_tokens ?? 0) * output) /
       1e6 || 0
   );
 };
