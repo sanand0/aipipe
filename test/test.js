@@ -449,7 +449,7 @@ t.test("Proxy API", async (t) => {
 
 // Test timeout - using a URL that will definitely timeout
 // Use a dedicated agent so sockets close promptly
-const agent = new Agent({ keepAliveTimeout: 0, keepAliveMaxTimeout: 0 });
+const agent = new Agent({ keepAliveTimeout: 1, keepAliveMaxTimeout: 1 });
 
 t.test("Proxy API timeout", async (t) => {
   t.teardown(() => agent.close());
