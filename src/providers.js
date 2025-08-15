@@ -69,30 +69,32 @@ export const providers = {
 
   geminiv1beta: {
     transform: async ({ path, request, env }) => {
-      let json, model, usage;
+      let json, model;
       if (request.method == "POST" && request.headers.get("Content-Type")?.includes("application/json")) {
         json = await request.json();
         model = json.model ?? path.match(/models\/([^:]+)/)?.[1];
         if (model && !geminiCost[model]) return { error: { code: 400, message: `Model ${model} pricing unknown` } };
-        if (path.includes(":embedContent")) {
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:countTokens`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "x-goog-api-key": env["GEMINI_API_KEY"] },
-            body: JSON.stringify(json),
-          });
-          if (res.ok) usage = { prompt_tokens: (await res.json()).totalTokens };
-        }
       }
       return {
         url: `https://generativelanguage.googleapis.com/v1beta${path}`,
         headers: updateHeaders(request.headers, [/^authorization$/i], { "x-goog-api-key": env["GEMINI_API_KEY"] }),
         ...(json ? { body: JSON.stringify(json) } : {}),
-        ...(model ? { model } : {}),
-        ...(usage ? { usage } : {}),
       };
     },
-    cost: async ({ model, usage }) => {
-      const [input, output] = geminiCost[model] ?? [0, 0];
+    cost: async ({ model, usage, env, path, body }) => {
+      model = model ?? path.match(/models\/([^:]+)/)?.[1];
+      if (!geminiCost[model]) return { cost: 0 };
+      const [input, output] = geminiCost[model];
+      if (!usage && path.includes(":embedContent") && body)
+        try {
+          const { content } = JSON.parse(body);
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:countTokens`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-goog-api-key": env["GEMINI_API_KEY"] },
+            body: JSON.stringify({ contents: [content] }),
+          });
+          if (res.ok) usage = { prompt_tokens: (await res.json()).totalTokens };
+        } catch {}
       const cost =
         (((usage?.prompt_tokens ?? usage?.input_tokens) * input) / 1e6 || 0) +
         (((usage?.completion_tokens ?? usage?.output_tokens) * output) / 1e6 || 0);
