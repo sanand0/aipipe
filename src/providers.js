@@ -1,4 +1,24 @@
 import { updateHeaders } from "./utils.js";
+import pricing from "./pricing.json" assert { type: "json" };
+
+const { openai: openaiCost, gemini: geminiCost } = pricing;
+
+const tokenCost = (pricing, model, usage) => {
+  const [input, output] = pricing[model] ?? [0, 0];
+  return (
+    ((usage?.prompt_tokens ?? usage?.input_tokens ?? 0) * input +
+      (usage?.completion_tokens ?? usage?.output_tokens ?? 0) * output) /
+      1e6 || 0
+  );
+};
+
+const parseUsage = (u) =>
+  u
+    ? {
+        prompt_tokens: u.prompt_tokens ?? u.promptTokenCount ?? u.input_tokens,
+        completion_tokens: u.completion_tokens ?? u.candidatesTokenCount ?? u.output_tokens,
+      }
+    : undefined;
 
 export const providers = {
   openrouter: {
@@ -19,6 +39,11 @@ export const providers = {
         (+pricing?.request || 0);
       return { cost };
     },
+    parse: (event) => {
+      event = event.response ?? event;
+      const usage = parseUsage(event.usage);
+      return { model: event.model, usage };
+    },
   },
 
   openai: {
@@ -38,15 +63,46 @@ export const providers = {
         ...(body ? { body } : {}),
       };
     },
-    cost: async ({ model, usage }) => {
-      const [input, output] = openaiCost[model] ?? [0, 0];
-      // Embeddings api: { prompt_tokens }
-      // Chat Completion usage: { prompt_tokens, completion_tokens }
-      // Responses API usage: {input_tokens, output_tokens}
-      const cost =
-        (((usage?.prompt_tokens ?? usage?.input_tokens) * input) / 1e6 || 0) +
-        (((usage?.completion_tokens ?? usage?.output_tokens) * output) / 1e6 || 0);
-      return { cost };
+    cost: async ({ model, usage }) => ({ cost: tokenCost(openaiCost, model, usage) }),
+    parse: (event) => {
+      event = event.response ?? event;
+      return { model: event.model, usage: event.usage };
+    },
+  },
+
+  geminiv1beta: {
+    transform: async ({ path, request, env }) => {
+      let json, model;
+      if (request.method == "POST" && request.headers.get("Content-Type")?.includes("application/json")) {
+        json = await request.json();
+        model = json.model ?? path.match(/models\/([^:]+)/)?.[1];
+        if (model && !geminiCost[model]) return { error: { code: 400, message: `Model ${model} pricing unknown` } };
+      }
+      return {
+        url: `https://generativelanguage.googleapis.com/v1beta${path}`,
+        headers: updateHeaders(request.headers, [/^authorization$/i], { "x-goog-api-key": env["GEMINI_API_KEY"] }),
+        ...(json ? { body: JSON.stringify(json) } : {}),
+      };
+    },
+    cost: async ({ model, usage, env, path, body }) => {
+      model = model ?? path.match(/models\/([^:]+)/)?.[1];
+      if (!geminiCost[model]) return { cost: 0 };
+      if (!usage && path.includes(":embedContent") && body)
+        try {
+          const { content } = JSON.parse(body);
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:countTokens`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-goog-api-key": env["GEMINI_API_KEY"] },
+            body: JSON.stringify({ contents: [content] }),
+          });
+          if (res.ok) usage = { prompt_tokens: (await res.json()).totalTokens };
+        } catch {}
+      return { cost: tokenCost(geminiCost, model, usage) };
+    },
+    parse: (event) => {
+      event = event.response ?? event;
+      const usage = parseUsage(event.usage ?? event.usageMetadata);
+      return { model: event.model ?? event.modelVersion, usage };
     },
   },
 
@@ -104,10 +160,7 @@ export const providers = {
       }
     },
 
-    cost: async ({ model, usage }) => {
-      const [input] = openaiCost[model] ?? [0, 0];
-      return { cost: ((usage?.prompt_tokens ?? usage?.input_tokens) * input) / 1e6 || 0 };
-    },
+    cost: async ({ model, usage }) => ({ cost: tokenCost(openaiCost, model, usage) }),
   },
 };
 
@@ -122,75 +175,29 @@ async function getOpenrouterModel(model) {
 
 // TODO: Only allow models for which { usage } is in the response
 // https://platform.openai.com/docs/pricing
-const openaiCost = {
-  "chatgpt-4o-latest": [5, 15],
-  "computer-use-preview-2025-03-11": [3, 12],
-  "computer-use-preview": [3, 12],
-  "gpt-3.5-turbo-0125": [0.5, 1.5],
-  "gpt-3.5-turbo-0301": [1.5, 2],
-  "gpt-3.5-turbo-0613": [1.5, 2],
-  "gpt-3.5-turbo-1106": [1, 2],
-  "gpt-3.5-turbo-16k-0613": [3, 4],
-  "gpt-3.5-turbo-16k": [3, 4],
-  "gpt-3.5-turbo-instruct": [1.5, 2],
-  "gpt-3.5-turbo": [0.5, 1.5],
-  "gpt-4-0125-preview": [10, 30],
-  "gpt-4-0613": [30, 60],
-  "gpt-4-1106-preview": [10, 30],
-  "gpt-4-1106-vision-preview": [10, 30],
-  "gpt-4-32k-0314": [60, 120],
-  "gpt-4-32k-0613": [60, 120],
-  "gpt-4-32k": [60, 120],
-  "gpt-4-turbo-2024-04-09": [10, 20],
-  "gpt-4-turbo-preview": [10, 30],
-  "gpt-4-turbo": [10, 30],
-  "gpt-4-vision-preview": [10, 30],
-  "gpt-4.1-2025-04-14": [2, 8],
-  "gpt-4.1-mini-2025-04-14": [0.4, 1.6],
-  "gpt-4.1-mini": [0.4, 1.6],
-  "gpt-4.1-nano-2025-04-14": [0.1, 0.4],
-  "gpt-4.1-nano": [0.1, 0.4],
-  "gpt-4.1": [2, 8],
-  "gpt-4.5-preview-2025-02-27": [75, 150],
-  "gpt-4.5-preview": [75, 150],
-  "gpt-4": [10, 20],
-  "gpt-4o-2024-05-13": [5, 15],
-  "gpt-4o-2024-08-06": [2.5, 10],
-  "gpt-4o-2024-11-20": [2.5, 10],
-  "gpt-4o-audio-preview-2024-10-01": [2.5, 10],
-  "gpt-4o-audio-preview-2024-12-17": [2.5, 10],
-  "gpt-4o-audio-preview": [2.5, 10],
-  "gpt-4o-mini-2024-07-18": [0.15, 0.6],
-  "gpt-4o-mini-audio-preview-2024-12-17": [0.15, 0.6],
-  "gpt-4o-mini-audio-preview": [0.15, 0.6],
-  "gpt-4o-mini-realtime-preview-2024-12-17": [0.6, 2.4],
-  "gpt-4o-mini-realtime-preview": [0.6, 2.4],
-  "gpt-4o-mini-search-preview-2025-03-11": [0.15, 0.6],
-  "gpt-4o-mini-search-preview": [0.15, 0.6],
-  "gpt-4o-mini": [0.15, 0.6],
-  "gpt-4o-realtime-preview-2024-10-01": [5, 20],
-  "gpt-4o-realtime-preview-2024-12-17": [5, 20],
-  "gpt-4o-realtime-preview": [5, 20],
-  "gpt-4o-search-preview-2025-03-11": [2.5, 10],
-  "gpt-4o-search-preview": [2.5, 10],
-  "gpt-4o": [2.5, 10],
-  "o1-2024-12-17": [15, 60],
-  "o1-mini-2024-09-12": [1.1, 4.4],
-  "o1-mini": [1.1, 4.4],
-  "o1-preview-2024-09-12": [15, 60],
-  "o1-preview": [15, 60],
-  "o1-pro-2025-03-19": [150, 600],
-  "o1-pro": [150, 600],
-  "o3-2025-04-16": [10, 40],
-  "o3-mini-2025-01-31": [1.1, 4.4],
-  "o3-mini": [1.1, 4.4],
-  "o4-mini-2025-04-16": [1.1, 4.4],
-  "o4-mini": [1.1, 4.4],
-  "tts-1-hd": [0, 30],
-  "tts-1": [0, 15],
-  o1: [15, 60],
-  o3: [10, 40],
-  "text-embedding-3-large": [0.13, 0],
-  "text-embedding-3-small": [0.02, 0],
-  "text-embedding-ada-002": [0.1, 0],
-};
+
+export function sseTransform(provider, addCost) {
+  const parse = providers[provider]?.parse;
+  let model, usage;
+  return new TransformStream({
+    start() {
+      this.buffer = "";
+    },
+    transform(chunk, controller) {
+      const lines = (this.buffer + new TextDecoder().decode(chunk, { stream: true })).split("\n");
+      this.buffer = lines.pop() || "";
+      lines.forEach((line) => {
+        if (line.startsWith("data: "))
+          try {
+            const parsed = parse?.(JSON.parse(line.slice(6)));
+            model = model ?? parsed?.model;
+            usage = usage ?? parsed?.usage;
+          } catch {}
+      });
+      controller.enqueue(chunk);
+    },
+    async flush() {
+      await addCost({ model, usage });
+    },
+  });
+}

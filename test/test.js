@@ -1,5 +1,6 @@
 import t from "tap";
 import { readFileSync } from "fs";
+import { Agent } from "undici";
 import { salt } from "../src/config.js";
 import { createToken, ymd } from "../src/utils.js";
 
@@ -88,11 +89,11 @@ t.test("Usage endpoint", async (t) => {
   t.ok(Array.isArray(usage.usage));
 });
 
-t.test("Completion and cost", async (t) => {
+t.test("OpenRouter completion and cost", async (t) => {
   const token = await testToken();
   const usageStart = await getUsage(token);
 
-  const model = "google/gemini-2.0-flash-lite-001";
+  const model = "google/gemini-2.5-flash-lite";
   const res = await fetch("/openrouter/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
@@ -107,7 +108,7 @@ t.test("Completion and cost", async (t) => {
   t.ok(usageEnd.cost > usageStart.cost);
 });
 
-t.test("Embedding and cost", async (t) => {
+t.test("OpenAI embedding and cost", async (t) => {
   const token = await testToken();
   const usageStart = await getUsage(token);
 
@@ -127,11 +128,11 @@ t.test("Embedding and cost", async (t) => {
   t.ok(Math.abs(usageEnd.cost - usageStart.cost - 1.6e-7) < 1e-12);
 });
 
-t.test("Streaming completion and cost", async (t) => {
+t.test("OpenRouter streaming completion and cost", async (t) => {
   const token = await testToken();
   const usageStart = await getUsage(token);
 
-  const model = "google/gemini-2.0-flash-lite-001";
+  const model = "google/gemini-2.5-flash-lite";
   const res = await fetch("/openrouter/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
@@ -177,6 +178,57 @@ t.test("OpenAI responses streaming completion and cost", async (t) => {
   t.equal(res.headers.get("Content-Type").split(";")[0], "text/event-stream");
 
   await res.text();
+  const usageEnd = await getUsage(token);
+  t.ok(usageEnd.cost > usageStart.cost);
+});
+
+t.test("Gemini completion and cost", async (t) => {
+  const token = await testToken();
+  const usageStart = await getUsage(token);
+
+  const res = await fetch("/geminiv1beta/models/gemini-2.5-flash-lite:generateContent", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ contents: [{ parts: [{ text: "What is 2 + 2?" }] }] }),
+  });
+  t.equal(res.status, 200);
+  const body = await res.json();
+  t.ok(Array.isArray(body.candidates));
+
+  const usageEnd = await getUsage(token);
+  t.ok(usageEnd.cost > usageStart.cost);
+});
+
+t.test("Gemini streaming completion and cost", async (t) => {
+  const token = await testToken();
+  const usageStart = await getUsage(token);
+
+  const res = await fetch("/geminiv1beta/models/gemini-2.5-flash-lite:streamGenerateContent?alt=sse", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ contents: [{ parts: [{ text: "What is 2 + 2?" }] }] }),
+  });
+  t.equal(res.status, 200);
+  t.equal(res.headers.get("Content-Type").split(";")[0], "text/event-stream");
+
+  await res.text();
+  const usageEnd = await getUsage(token);
+  t.ok(usageEnd.cost > usageStart.cost);
+});
+
+t.test("Gemini embedding and cost", async (t) => {
+  const token = await testToken();
+  const usageStart = await getUsage(token);
+
+  const res = await fetch("/geminiv1beta/models/gemini-embedding-001:embedContent", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ model: "gemini-embedding-001", content: { parts: [{ text: "What is 2 + 2?" }] } }),
+  });
+  t.equal(res.status, 200);
+  const body = await res.json();
+  t.ok(body.embedding);
+
   const usageEnd = await getUsage(token);
   t.ok(usageEnd.cost > usageStart.cost);
 });
@@ -289,18 +341,6 @@ t.test("Proxy API", async (t) => {
   const body2 = await res2.json();
   t.match(body2.message, /URL must begin with http/);
 
-  // Test timeout - using a URL that will definitely timeout
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 1000); // Force timeout after 1s
-  try {
-    await fetch("/proxy/https://httpbin.org/delay/35", { signal: controller.signal });
-    clearTimeout(timeoutId);
-    t.fail("Request should have timed out");
-  } catch (error) {
-    clearTimeout(timeoutId);
-    t.equal(error.name, "AbortError");
-  }
-
   // Test request method and headers preservation
   const res4 = await fetch("/proxy/https://httpbin.org/post", {
     method: "POST",
@@ -405,4 +445,20 @@ t.test("Proxy API", async (t) => {
   t.equal(res7.headers.get("Access-Control-Allow-Methods"), "GET, POST");
   t.equal(res7.headers.get("Access-Control-Allow-Headers"), "Authorization, Content-Type");
   t.equal(res7.headers.get("Access-Control-Expose-Headers"), "*");
+});
+
+// Test timeout - using a URL that will definitely timeout
+// Use a dedicated agent so sockets close promptly
+const agent = new Agent({ keepAliveTimeout: 1, keepAliveMaxTimeout: 1 });
+
+t.test("Proxy API timeout", async (t) => {
+  t.teardown(() => agent.close());
+  await t.rejects(
+    fetch("/proxy/https://httpbin.org/delay/35", {
+      dispatcher: agent,
+      signal: AbortSignal.timeout(1000),
+      headers: { Connection: "close" },
+    }),
+    { name: "TimeoutError" },
+  );
 });

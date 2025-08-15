@@ -1,6 +1,6 @@
 import { budget, salt } from "./config.js";
 import * as jose from "jose";
-import { providers } from "./providers.js";
+import { providers, sseTransform } from "./providers.js";
 import { updateHeaders, addCors, createToken } from "./utils.js";
 export { AIPipeCost } from "./cost.js";
 
@@ -92,8 +92,16 @@ export default {
     });
 
     // Add the cost based on provider's cost
-    const addCost = async ({ model, usage }) => {
-      const { cost } = await providers[provider].cost({ model, usage });
+    const parse = providers[provider].parse;
+    const addCost = async (data) => {
+      const parsed = parse ? parse(data) : data;
+      const { cost } = await providers[provider].cost({
+        model: parsed.model,
+        usage: parsed.usage,
+        env,
+        path,
+        body: params.body,
+      });
       if (cost > 0) await aiPipeCost.add(email, cost);
     };
 
@@ -103,7 +111,7 @@ export default {
 
     // For streaming response, extract { model, usage } wherever it appears
     const body = contentType.includes("text/event-stream")
-      ? response.body.pipeThrough(sseTransform(addCost))
+      ? response.body.pipeThrough(sseTransform(provider, addCost))
       : response.body;
     // TODO: If the response is not JSON or SSE (e.g. image), handle cost.
 
@@ -127,14 +135,13 @@ async function proxyRequest(request) {
   if (!targetUrl.startsWith("http")) return jsonResponse({ code: 400, message: "URL must begin with http" });
 
   // abort stalled fetches so workers don't hang
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  const signal = AbortSignal.timeout(30000);
   // mirror the request while stripping unsafe headers
   const safeRequest = {
     method: request.method,
     headers: updateHeaders(request.headers, SKIP_REQUEST_HEADERS),
     redirect: "follow",
-    signal: controller.signal,
+    signal,
   };
   if (request.method !== "GET" && request.method !== "HEAD") safeRequest.body = request.body;
 
@@ -142,14 +149,11 @@ async function proxyRequest(request) {
   try {
     response = await fetch(targetUrl, safeRequest);
   } catch (error) {
-    clearTimeout(timeoutId);
     return jsonResponse(
-      error.name === "AbortError"
+      error.name === "TimeoutError"
         ? { code: 504, message: "Request timed out after 30 seconds" }
         : { code: 500, message: `Proxy error: ${error.name} - ${error.message}` },
     );
-  } finally {
-    clearTimeout(timeoutId);
   }
 
   // return the upstream response with cors and stripped headers
@@ -157,33 +161,6 @@ async function proxyRequest(request) {
     headers: addCors(updateHeaders(response.headers, SKIP_RESPONSE_HEADERS, { "X-Proxy-URL": targetUrl })),
     status: response.status,
     statusText: response.statusText,
-  });
-}
-
-// Process an SSE stream to extract model, usage and add cost based on that
-function sseTransform(addCost) {
-  let model, usage;
-  return new TransformStream({
-    start() {
-      this.buffer = "";
-    },
-    transform(chunk, controller) {
-      const lines = (this.buffer + new TextDecoder().decode(chunk, { stream: true })).split("\n");
-      this.buffer = lines.pop() || ""; // Store partial line
-      lines.forEach((line) => {
-        if (line.startsWith("data: "))
-          try {
-            let event = JSON.parse(line.slice(6));
-            // OpenAI's Response API returns the event inside a { response }
-            event = event.response ?? event;
-            [model, usage] = [model ?? event.model, usage ?? event.usage];
-          } catch {}
-      });
-      controller.enqueue(chunk);
-    },
-    async flush() {
-      await addCost({ model, usage });
-    },
   });
 }
 

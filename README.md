@@ -1,6 +1,6 @@
 # AI Pipe
 
-AI Pipe lets you build web apps that can access LLM APIs (e.g. OpenRouter, OpenAI etc.) without a back-end.
+AI Pipe lets you build web apps that can access LLM APIs (e.g. OpenRouter, OpenAI, Gemini etc.) without a back-end.
 
 An instance is hosted at <https://aipipe.org/>. You can host your own on CloudFlare. Licensed under [MIT](LICENSE).
 
@@ -274,6 +274,49 @@ Response:
     "prompt_tokens": 8,
     "total_tokens": 8,
   },
+}
+```
+
+### Gemini API
+
+**`GET /geminiv1beta/*`**: Proxy requests to Google's Gemini API
+
+**Example**: Make a [generateContent](https://ai.google.dev/gemini-api/docs) request
+
+```bash
+curl https://aipipe.org/geminiv1beta/models/gemini-1.5-flash:generateContent -H "Authorization: $AIPIPE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"contents":[{"parts":[{"text":"What is 2 + 2?"}]}]}'
+```
+
+Response:
+
+```jsonc
+{
+  "candidates": [
+    {
+      "content": { "parts": [{ "text": "2 + 2 is 4." }] },
+    },
+  ],
+  "modelVersion": "gemini-1.5-flash",
+  "usageMetadata": { "promptTokenCount": 8, "candidatesTokenCount": 8, "totalTokenCount": 16 },
+}
+```
+
+**Example**: Create [embeddings](https://ai.google.dev/gemini-api/docs/embeddings)
+
+```bash
+curl https://aipipe.org/geminiv1beta/models/gemini-embedding-001:embedContent -H "Authorization: $AIPIPE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"gemini-embedding-001","content":{"parts":[{"text":"What is 2 + 2?"}]}}'
+```
+
+Response:
+
+```jsonc
+{
+  "embedding": { "values": [0.01, -0.02] },
+  "usageMetadata": { "tokenCount": 8 },
 }
 ```
 
