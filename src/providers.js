@@ -147,7 +147,7 @@ async function getOpenrouterModel(model) {
 // TODO: Only allow models for which { usage } is in the response
 // https://platform.openai.com/docs/pricing
 const openaiCost = {
-  "chatgpt-4o-latest": [5, 15],
+  "chatgpt-4o-latest": [2.5, 10],
   "computer-use-preview-2025-03-11": [3, 12],
   "computer-use-preview": [3, 12],
   "gpt-3.5-turbo-0125": [0.5, 1.5],
@@ -212,6 +212,7 @@ const openaiCost = {
   "o4-mini": [1.1, 4.4],
   "tts-1-hd": [0, 30],
   "tts-1": [0, 15],
+  "omni-moderation-latest": [0, 0],
   o1: [15, 60],
   o3: [10, 40],
   "text-embedding-3-large": [0.13, 0],
@@ -220,11 +221,13 @@ const openaiCost = {
 };
 
 const geminiCost = {
-  "gemini-1.5-flash": [0.35, 1.05],
-  "gemini-1.5-pro": [3.5, 10.5],
+  "gemini-1.5-flash": [0.075, 0.3],
+  "gemini-1.5-pro": [1.25, 5],
   "gemini-2.0-flash": [0.1, 0.4],
-  "gemini-2.5-flash-preview-tts": [0, 0],
-  "gemini-2.0-flash-preview-image-generation": [0, 0],
+  "gemini-2.0-flash-preview-image-generation": [0.1, 0.4],
+  "gemini-2.5-flash": [0.3, 2.5],
+  "gemini-2.5-flash-preview-tts": [0.3, 2.5],
+  "gemini-2.5-pro": [1.25, 10],
   "imagen-4.0-generate-001": [0, 0],
-  "gemini-embedding-001": [0.1, 0],
+  "gemini-embedding-001": [0.15, 0],
 };
