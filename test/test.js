@@ -1,5 +1,6 @@
 import t from "tap";
 import { readFileSync } from "fs";
+import { Agent } from "undici";
 import { salt } from "../src/config.js";
 import { createToken, ymd } from "../src/utils.js";
 
@@ -444,4 +445,20 @@ t.test("Proxy API", async (t) => {
   t.equal(res7.headers.get("Access-Control-Allow-Methods"), "GET, POST");
   t.equal(res7.headers.get("Access-Control-Allow-Headers"), "Authorization, Content-Type");
   t.equal(res7.headers.get("Access-Control-Expose-Headers"), "*");
+});
+
+// Test timeout - using a URL that will definitely timeout
+// Use a dedicated agent so sockets close promptly
+const agent = new Agent({ keepAliveTimeout: 0, keepAliveMaxTimeout: 0 });
+
+t.test("Proxy API timeout", async (t) => {
+  t.teardown(() => agent.close());
+  await t.rejects(
+    fetch("/proxy/https://httpbin.org/delay/35", {
+      dispatcher: agent,
+      signal: AbortSignal.timeout(1000),
+      headers: { Connection: "close" },
+    }),
+    { name: "AbortError" },
+  );
 });
