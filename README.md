@@ -452,6 +452,7 @@ ADMIN_EMAILS="admin@example.com, admin2@example.com, ..."
 # Optional: Add only the APIs you need
 OPENROUTER_API_KEY=sk-or-v1-...  # via openrouter.ai/settings
 OPENAI_API_KEY=sk-...            # via platform.openai.com/api-keys
+GEMINI_API_KEY=AI...             # via aistudio.google.com/app/apikey
 ```
 
 4. Test your deployment:
@@ -478,6 +479,7 @@ npx wrangler secret put AIPIPE_SECRET
 npx wrangler secret put ADMIN_EMAILS
 npx wrangler secret put OPENROUTER_API_KEY
 npx wrangler secret put OPENAI_API_KEY
+npx wrangler secret put GEMINI_API_KEY
 
 # Deploy
 npm run deploy
