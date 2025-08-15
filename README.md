@@ -320,20 +320,6 @@ Response:
 }
 ```
 
-**Example**: Get an ephemeral token for the [Live API](https://ai.google.dev/gemini-api/docs/live-api)
-
-```bash
-curl https://aipipe.org/geminiv1beta/tokens:generate -H "Authorization: $AIPIPE_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"model":"gemini-1.5-flash"}'
-```
-
-Response:
-
-```jsonc
-{ "token": "EPHEMERAL_TOKEN", "expireTime": "2025-05-01T12:00:00Z" }
-```
-
 ### Similarity API
 
 **`POST /similarity`**: Calculate semantic similarity between documents and topics using embeddings.
