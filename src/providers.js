@@ -50,6 +50,30 @@ export const providers = {
     },
   },
 
+  geminiv1beta: {
+    transform: async ({ path, request, env }) => {
+      let json, model;
+      if (request.method == "POST" && request.headers.get("Content-Type")?.includes("application/json")) {
+        json = await request.json();
+        model = json.model ?? path.match(/models\/([^:]+)/)?.[1];
+        if (model && !geminiCost[model]) return { error: { code: 400, message: `Model ${model} pricing unknown` } };
+      }
+      return {
+        url: `https://generativelanguage.googleapis.com/v1beta${path}`,
+        headers: updateHeaders(request.headers, [], { "x-goog-api-key": env["GEMINI_API_KEY"] }),
+        ...(json ? { body: JSON.stringify(json) } : {}),
+      };
+    },
+    cost: async ({ model, usage }) => {
+      const [input, output, req] = geminiCost[model] ?? [0, 0, 0];
+      const cost =
+        (((usage?.prompt_tokens ?? usage?.input_tokens) * input) / 1e6 || 0) +
+        (((usage?.completion_tokens ?? usage?.output_tokens) * output) / 1e6 || 0) +
+        req;
+      return { cost };
+    },
+  },
+
   similarity: {
     transform: async ({ request, env }) => {
       try {
@@ -193,4 +217,14 @@ const openaiCost = {
   "text-embedding-3-large": [0.13, 0],
   "text-embedding-3-small": [0.02, 0],
   "text-embedding-ada-002": [0.1, 0],
+};
+
+const geminiCost = {
+  "gemini-1.5-flash": [0.35, 1.05],
+  "gemini-1.5-pro": [3.5, 10.5],
+  "gemini-2.0-flash": [0.1, 0.4],
+  "gemini-2.5-flash-preview-tts": [0, 0],
+  "gemini-2.0-flash-preview-image-generation": [0, 0],
+  "imagen-4.0-generate-001": [0, 0],
+  "gemini-embedding-001": [0.1, 0],
 };

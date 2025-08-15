@@ -174,9 +174,17 @@ function sseTransform(addCost) {
         if (line.startsWith("data: "))
           try {
             let event = JSON.parse(line.slice(6));
-            // OpenAI's Response API returns the event inside a { response }
             event = event.response ?? event;
-            [model, usage] = [model ?? event.model, usage ?? event.usage];
+            model = model ?? event.model ?? event.modelVersion;
+            const u = event.usage ?? event.usageMetadata;
+            usage =
+              usage ??
+              (u
+                ? {
+                    prompt_tokens: u.prompt_tokens ?? u.promptTokenCount,
+                    completion_tokens: u.completion_tokens ?? u.candidatesTokenCount,
+                  }
+                : undefined);
           } catch {}
       });
       controller.enqueue(chunk);

@@ -181,6 +181,57 @@ t.test("OpenAI responses streaming completion and cost", async (t) => {
   t.ok(usageEnd.cost > usageStart.cost);
 });
 
+t.test("Gemini completion and cost", async (t) => {
+  const token = await testToken();
+  const usageStart = await getUsage(token);
+
+  const res = await fetch("/geminiv1beta/models/gemini-1.5-flash:generateContent", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ contents: [{ parts: [{ text: "What is 2 + 2?" }] }] }),
+  });
+  t.equal(res.status, 200);
+  const body = await res.json();
+  t.ok(Array.isArray(body.candidates));
+
+  const usageEnd = await getUsage(token);
+  t.ok(usageEnd.cost > usageStart.cost);
+});
+
+t.test("Gemini streaming completion and cost", async (t) => {
+  const token = await testToken();
+  const usageStart = await getUsage(token);
+
+  const res = await fetch("/geminiv1beta/models/gemini-1.5-flash:streamGenerateContent?alt=sse", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ contents: [{ parts: [{ text: "What is 2 + 2?" }] }] }),
+  });
+  t.equal(res.status, 200);
+  t.equal(res.headers.get("Content-Type").split(";")[0], "text/event-stream");
+
+  await res.text();
+  const usageEnd = await getUsage(token);
+  t.ok(usageEnd.cost > usageStart.cost);
+});
+
+t.test("Gemini embedding and cost", async (t) => {
+  const token = await testToken();
+  const usageStart = await getUsage(token);
+
+  const res = await fetch("/geminiv1beta/models/gemini-embedding-001:embedContent", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ model: "gemini-embedding-001", content: { parts: [{ text: "What is 2 + 2?" }] } }),
+  });
+  t.equal(res.status, 200);
+  const body = await res.json();
+  t.ok(body.embedding);
+
+  const usageEnd = await getUsage(token);
+  t.ok(usageEnd.cost > usageStart.cost);
+});
+
 t.test("Similarity API", async (t) => {
   const token = await testToken();
   const usageStart = await getUsage(token);
