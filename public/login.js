@@ -65,13 +65,12 @@ export function copyAction($root, content) {
 async function init() {
   const { token, email } = JSON.parse(localStorage.getItem("aipipe") || "{}");
   if (!token) return;
-
   if (redirect) {
     const url = new URL(redirect, window.location.origin);
-    url.searchParams.append("aipipe_token", token);
-    url.searchParams.append("aipipe_email", email);
-    window.location.href = url.toString();
-    return;
+    if (url.origin === window.location.origin) {
+      window.location.href = url.toString();
+      return;
+    }
   }
 
   $result.classList.remove("d-none");
