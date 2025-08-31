@@ -49,7 +49,6 @@ Paste this code into `index.html`, open it in a browser, and check your [DevTool
   import { getProfile } from "https://aipipe.org/aipipe.js";
 
   const { token, email } = getProfile();
-  if (!token) window.location = `https://aipipe.org/login?redirect=${window.location.href}`;
 
   const response = await fetch("https://aipipe.org/openrouter/v1/chat/completions", {
     method: "POST",
@@ -65,13 +64,14 @@ Paste this code into `index.html`, open it in a browser, and check your [DevTool
 
 This app will:
 
-1. **Redirect the user to AI Pipe.**
-   - `getProfile()` sets `token` to `null` since it doesn't know the user.
-   - `window.location` redirects the user to `https://aipipe.org/login` with `?redirect=` as your app URL
-2. **Redirect them back to your app once they log in.**
+1. **Prompt the user for their AI Pipe token.**
+   - `getProfile()` will prompt the user to enter their AI Pipe token if not already stored
+   - It validates the token by decoding the JWT to extract the email
+   - Invalid tokens will prompt the user to enter a valid token
+2. **Store the token for future use.**
 
-- Your app URL will have a `?aipipe_token=...&aipipe_email=...` with the user's token and email
-- `getProfile()` fetches these, stores them for future reference, and returns `token` and `email`
+- The token and email are stored in localStorage for subsequent visits
+- `getProfile()` returns the stored `token` and `email` from the validated JWT
 
 3. **Make an LLM API call to OpenRouter or OpenAI and log the response.**
 

@@ -51,7 +51,6 @@
           <pre class="mb-0"><code class="language-javascript">import { getProfile } from "https://aipipe.org/aipipe.js";
 
 const { token, email } = getProfile();
-if (!token) window.location = `https://aipipe.org/login?redirect=${window.location.href}`;
 
 const response = await fetch("https://aipipe.org/openrouter/v1/chat/completions", {
   method: "POST",
@@ -111,7 +110,6 @@ const response = await fetch("https://aipipe.org/openrouter/v1/chat/completions"
       <pre><code class="language-javascript">import { getProfile } from "https://aipipe.org/aipipe.js";
 
 const { token, email } = getProfile();
-if (!token) window.location = `https://aipipe.org/login?redirect=${window.location.href}`;
 
 const response = await fetch("https://aipipe.org/openrouter/v1/chat/completions", {
   method: "POST",
@@ -126,16 +124,17 @@ const response = await fetch("https://aipipe.org/openrouter/v1/chat/completions"
       <div class="text-bg-dark bg-opacity-25 p-3 mb-3">
         <p>This will:</p>
         <ol id="docs-details">
-          <li><strong>Redirect the user to <a href="https://aipipe.org/login" class="text-reset">AI Pipe's login</a>.</strong>
+          <li><strong>Prompt the user for their AI Pipe token.</strong>
             <ul>
-              <li><code>getProfile()</code> sets <code>token</code> to <code>null</code> since it doesn&#39;t know the user.</li>
-              <li><code>window.location</code> redirects the user to <code>https://aipipe.org/login</code> with <code>?redirect=</code> as your app URL</li>
+              <li><code>getProfile()</code> will prompt the user to enter their AI Pipe token if not already stored</li>
+              <li>It validates the token by decoding the JWT to extract the email</li>
+              <li>Invalid tokens will prompt the user to enter a valid token</li>
             </ul>
           </li>
-          <li><strong>Redirect them back to your app once they log in.</strong>
+          <li><strong>Store the token for future use.</strong>
             <ul>
-              <li>Your app URL will have a <code>?aipipe_token=...&amp;aipipe_email=...</code> with the user&#39;s token and email</li>
-              <li><code>getProfile()</code> fetches these, stores them for future reference, and returns <code>token</code> and <code>email</code></li>
+              <li>The token and email are stored in localStorage for subsequent visits</li>
+              <li><code>getProfile()</code> returns the stored <code>token</code> and <code>email</code> from the validated JWT</li>
             </ul>
           </li>
           <li><strong>Make an LLM API call to OpenRouter and log the response.</strong>
@@ -157,7 +156,6 @@ const response = await fetch("https://aipipe.org/openrouter/v1/chat/completions"
       <pre><code class="language-javascript">import { getProfile } from "https://aipipe.org/aipipe.js";
 
 const { token, email } = getProfile();
-if (!token) window.location = `https://aipipe.org/login?redirect=${window.location.href}`;
 
 const response = await fetch("https://aipipe.org/openrouter/v1/responses", {
   method: "POST",
@@ -170,7 +168,6 @@ const response = await fetch("https://aipipe.org/openrouter/v1/responses", {
       <pre><code class="language-javascript">import { getProfile } from "https://aipipe.org/aipipe.js";
 
 const { token } = getProfile();
-if (!token) window.location = `https://aipipe.org/login?redirect=${window.location.href}`;
 
 const response = await fetch("https://aipipe.org/geminiv1beta/models/gemini-1.5-flash:generateContent", {
   method: "POST",

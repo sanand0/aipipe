@@ -1,7 +1,7 @@
-import { getProfile } from "./aipipe.js";
+import { getData } from "./aipipe.js";
 import { showUsage } from "./usage.js";
 
-const { token, email } = getProfile();
+const { token, email } = getData();
 if (!token) window.location = `login?redirect=${window.location.href}`;
 
 const $usage = document.querySelector("#usage");
