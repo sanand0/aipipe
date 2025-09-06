@@ -1,10 +1,11 @@
+import { render, html } from "https://cdn.jsdelivr.net/npm/lit-html@3/+esm";
+
 async function showUsage($usage, token, email) {
   const { cost, limit, days, usage } = await fetch("usage", { headers: { Authorization: `Bearer ${token}` } }).then(
     (r) => r.json(),
   );
 
-  // Display usage summary and table
-  $usage.innerHTML = /* html */ `
+  const view = html`
     <div class="card text-bg-primary shadow-lg mb-3">
       <div class="card-body">
         <h3 class="card-title h5">${email}</h3>
@@ -22,18 +23,17 @@ async function showUsage($usage, token, email) {
         </tr>
       </thead>
       <tbody>
-        ${usage
-          .map(
-            (day) => `
-              <tr>
-                <td>${day.date}</td>
-                <td>${(day.cost * 100).toFixed(5)}</td>
-              </tr>`,
-          )
-          .join("")}
+        ${usage.map(
+          (day) =>
+            html` <tr>
+              <td>${day.date}</td>
+              <td>${(day.cost * 100).toFixed(5)}</td>
+            </tr>`,
+        )}
       </tbody>
     </table>
   `;
+  render(view, $usage);
 }
 
 export { showUsage };
