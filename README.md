@@ -88,7 +88,7 @@ This app will:
 **Example**: Get usage for a user
 
 ```bash
-curl https://aipipe.org/usage -H "Authorization: $AIPIPE_TOKEN"
+curl https://aipipe.org/usage -H "Authorization: Bearer $AIPIPE_TOKEN"
 ```
 
 Response:
@@ -156,7 +156,7 @@ Notes:
 **Example**: List [Openrouter models](https://openrouter.ai/docs/api-reference/list-available-models)
 
 ```bash
-curl https://aipipe.org/openrouter/v1/models -H "Authorization: $AIPIPE_TOKEN"
+curl https://aipipe.org/openrouter/v1/models -H "Authorization: Bearer $AIPIPE_TOKEN"
 ```
 
 Response:
@@ -176,7 +176,8 @@ Response:
 **Example**: Make a [chat completion request](https://openrouter.ai/docs/api-reference/chat-completion)
 
 ```bash
-curl https://aipipe.org/openrouter/v1/chat/completions -H "Authorization: $AIPIPE_TOKEN" \
+curl https://aipipe.org/openrouter/v1/chat/completions \
+  -H "Authorization: Bearer $AIPIPE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"model": "google/gemini-2.0-flash-lite-001", "messages": [{ "role": "user", "content": "What is 2 + 2?" }] }'
 ```
@@ -200,7 +201,7 @@ Response:
 **Example**: List [OpenAI models](https://platform.openai.com/docs/api-reference/models)
 
 ```bash
-curl https://aipipe.org/openai/v1/models -H "Authorization: $AIPIPE_TOKEN"
+curl https://aipipe.org/openai/v1/models -H "Authorization: Bearer $AIPIPE_TOKEN"
 ```
 
 Response:
@@ -223,7 +224,8 @@ Response:
 **Example**: Make a [responses request](https://platform.openai.com/docs/api-reference/responses)
 
 ```bash
-curl https://aipipe.org/openai/v1/responses -H "Authorization: $AIPIPE_TOKEN" \
+curl https://aipipe.org/openai/v1/responses \
+  -H "Authorization: Bearer $AIPIPE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"model": "gpt-4.1-nano", "input": "What is 2 + 2?" }'
 ```
@@ -249,7 +251,8 @@ Response:
 **Example**: Create [embeddings](https://platform.openai.com/docs/api-reference/embeddings)
 
 ```bash
-curl https://aipipe.org/openai/v1/embeddings -H "Authorization: $AIPIPE_TOKEN" \
+curl https://aipipe.org/openai/v1/embeddings \
+  -H "Authorization: Bearer $AIPIPE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"model": "text-embedding-3-small", "input": "What is 2 + 2?" }'
 ```
@@ -284,7 +287,8 @@ Response:
 **Example**: Make a [generateContent](https://ai.google.dev/gemini-api/docs) request
 
 ```bash
-curl https://aipipe.org/geminiv1beta/models/gemini-1.5-flash:generateContent -H "Authorization: $AIPIPE_TOKEN" \
+curl https://aipipe.org/geminiv1beta/models/gemini-1.5-flash:generateContent \
+  -H "Authorization: Bearer $AIPIPE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"contents":[{"parts":[{"text":"What is 2 + 2?"}]}]}'
 ```
@@ -306,7 +310,8 @@ Response:
 **Example**: Create [embeddings](https://ai.google.dev/gemini-api/docs/embeddings)
 
 ```bash
-curl https://aipipe.org/geminiv1beta/models/gemini-embedding-001:embedContent -H "Authorization: $AIPIPE_TOKEN" \
+curl https://aipipe.org/geminiv1beta/models/gemini-embedding-001:embedContent \
+  -H "Authorization: Bearer $AIPIPE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"model":"gemini-embedding-001","content":{"parts":[{"text":"What is 2 + 2?"}]}}'
 ```
@@ -327,7 +332,8 @@ Response:
 **Example**: Calculate similarity between documents and topics
 
 ```bash
-curl https://aipipe.org/similarity -H "Authorization: $AIPIPE_TOKEN" \
+curl https://aipipe.org/similarity \
+  -H "Authorization: Bearer $AIPIPE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "docs": ["The quick brown fox jumps over the lazy dog", "A fast orange fox leaps over a sleepy canine"],
@@ -353,7 +359,8 @@ Response:
 **Example**: Calculate similarity between all documents (self-similarity matrix)
 
 ```bash
-curl https://aipipe.org/similarity -H "Authorization: $AIPIPE_TOKEN" \
+curl https://aipipe.org/similarity \
+  -H "Authorization: Bearer $AIPIPE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "docs": [
@@ -382,7 +389,8 @@ Response:
 **Example**: Using structured input format
 
 ```bash
-curl https://aipipe.org/similarity -H "Authorization: $AIPIPE_TOKEN" \
+curl https://aipipe.org/similarity \
+  -H "Authorization: Bearer $AIPIPE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "docs": [
@@ -462,7 +470,7 @@ Ensure that `.dev.vars` has all keys set (including optional ones). Then run:
 ```bash
 npm run dev   # Runs at http://localhost:8787
 ADMIN_EMAILS=admin@example.com npm test
-curl http://localhost:8787/usage -H "Authorization: $AIPIPE_TOKEN"
+curl http://localhost:8787/usage -H "Authorization: Bearer $AIPIPE_TOKEN"
 ```
 
 Or run specific tests, e.g. only OpenAI tests, via:
@@ -493,7 +501,7 @@ BASE_URL=https://aipipe.org ADMIN_EMAILS=admin@example.com npm test
 **`GET /admin/usage`**: Get historical usage of all users. Only for admins
 
 ```bash
-curl https://aipipe.org/admin/usage -H "Authorization: $AIPIPE_TOKEN"
+curl https://aipipe.org/admin/usage -H "Authorization: Bearer $AIPIPE_TOKEN"
 ```
 
 Response:
@@ -514,7 +522,7 @@ Response:
 **`GET /admin/token?email=user@example.com`**: Generate a JWT token for any user. Only for admins.
 
 ```bash
-curl "https://aipipe.org/admin/token?email=user@example.com" -H "Authorization: $AIPIPE_TOKEN"
+curl "https://aipipe.org/admin/token?email=user@example.com" -H "Authorization: Bearer $AIPIPE_TOKEN"
 ```
 
 Response:
@@ -528,7 +536,8 @@ Response:
 **`POST /admin/cost`**: Overwrite the cost usage for a user on a specific date. Only for admins.
 
 ```bash
-curl https://aipipe.org/admin/cost -X POST -H "Authorization: $AIPIPE_TOKEN" \
+curl https://aipipe.org/admin/cost \
+  -H "Authorization: Bearer $AIPIPE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"email": "user@example.com", "date": "2025-04-18", "cost": 1.23}'
 ```

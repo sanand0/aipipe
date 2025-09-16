@@ -27,7 +27,7 @@ export default {
 
     if (provider === "proxy") return proxyRequest(request);
 
-    // Token must be present in Authorization: Bearer
+    // Token must be present in Authorization: Bearer (but Bearer is optional)
     const token = (request.headers.get("Authorization") ?? "").replace(/^Bearer\s*/, "").trim();
     if (!token) return jsonResponse({ code: 401, message: "Missing Authorization: Bearer token" });
 

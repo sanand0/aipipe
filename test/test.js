@@ -26,6 +26,21 @@ async function getUsage(token) {
   return await fetch("/usage", { headers: { Authorization: `Bearer ${token}` } }).then((res) => res.json());
 }
 
+t.test("README Authorization examples include Bearer prefix", async (t) => {
+  const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+  t.ok(readme.includes("Authorization: Bearer"), "README documents Bearer prefix");
+
+  const invalidAuthorizations = [...readme.matchAll(/Authorization:\s*([^\n]+)/g)].filter(
+    ([, header]) => !/Bearer\s+/i.test(header),
+  );
+
+  t.same(
+    invalidAuthorizations,
+    [],
+    invalidAuthorizations.map(([, header]) => header.trim()).join(", "),
+  );
+});
+
 t.test("CORS headers", async (t) => {
   const res = await fetch("/openrouter/v1/models", { method: "OPTIONS" });
   t.equal(res.status, 200);
