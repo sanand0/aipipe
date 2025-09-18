@@ -1,7 +1,7 @@
 import t from "tap";
 import { readFileSync } from "fs";
 import { Agent } from "undici";
-import { salt } from "../src/config.js";
+import { budget, salt } from "../src/config.js";
 import { createToken, ymd } from "../src/utils.js";
 
 // Get base URL environment or default to localhost:8787
@@ -102,6 +102,15 @@ t.test("Usage endpoint", async (t) => {
   t.type(usage.days, "number");
   t.type(usage.cost, "number");
   t.ok(Array.isArray(usage.usage));
+});
+
+t.test("Domain budget fallback", async (t) => {
+  const email = "domain-user@example.com";
+  const token = await testToken(email);
+  const usage = await getUsage(token);
+
+  t.equal(usage.limit, budget["@example.com"].limit, "uses domain-specific budget cap");
+  t.not(usage.limit, budget["*"].limit, "does not default to global budget");
 });
 
 t.test("OpenRouter completion and cost", async (t) => {
