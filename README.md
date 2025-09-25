@@ -319,7 +319,7 @@ Response contains:
 
 ```bash
 curl https://aipipe.org/geminiv1beta/models/gemini-1.5-flash:generateContent \
-  -H "Authorization: Bearer $AIPIPE_TOKEN" \
+  -H "x-goog-api-key: $AIPIPE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"contents":[{"parts":[{"text":"What is 2 + 2?"}]}]}'
 ```
@@ -342,7 +342,7 @@ Response contains:
 
 ```bash
 curl https://aipipe.org/geminiv1beta/models/gemini-embedding-001:embedContent \
-  -H "Authorization: Bearer $AIPIPE_TOKEN" \
+  -H "x-goog-api-key: $AIPIPE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"model":"gemini-embedding-001","content":{"parts":[{"text":"What is 2 + 2?"}]}}'
 ```

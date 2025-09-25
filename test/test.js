@@ -219,7 +219,7 @@ t.test("Gemini completion and cost", async (t) => {
 
   const res = await fetch("/geminiv1beta/models/gemini-2.5-flash-lite:generateContent", {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { "x-goog-api-key": token },
     body: JSON.stringify({ contents: [{ parts: [{ text: "What is 2 + 2?" }] }] }),
   });
   t.equal(res.status, 200);
@@ -236,7 +236,7 @@ t.test("Gemini streaming completion and cost", async (t) => {
 
   const res = await fetch("/geminiv1beta/models/gemini-2.5-flash-lite:streamGenerateContent?alt=sse", {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { "x-goog-api-key": token },
     body: JSON.stringify({ contents: [{ parts: [{ text: "What is 2 + 2?" }] }] }),
   });
   t.equal(res.status, 200);
@@ -253,7 +253,7 @@ t.test("Gemini embedding and cost", async (t) => {
 
   const res = await fetch("/geminiv1beta/models/gemini-embedding-001:embedContent", {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { "x-goog-api-key": token },
     body: JSON.stringify({ model: "gemini-embedding-001", content: { parts: [{ text: "What is 2 + 2?" }] } }),
   });
   t.equal(res.status, 200);

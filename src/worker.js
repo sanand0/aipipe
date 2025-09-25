@@ -40,8 +40,14 @@ export default {
 
     if (provider === "proxy") return proxyRequest(request);
 
-    // Token must be present in Authorization: Bearer (but Bearer is optional)
-    const token = (request.headers.get("Authorization") ?? "").replace(/^Bearer\s*/, "").trim();
+    // AIPIPE Token must be present in one of these headers:
+    //  Authorization: Bearer <token> (for OpenAI, OpenRouter, etc.)
+    //  Authorization: <token> (for backward compatibility)
+    //  x-goog-api-key: <token> (for Google API key support)
+    const token =
+      (request.headers.get("Authorization") ?? "").replace(/^Bearer\s*/, "").trim() ||
+      request.headers.get("x-goog-api-key") ||
+      "";
     if (!token) return jsonResponse({ code: 401, message: "Missing Authorization: Bearer token" });
 
     // Token must contain a valid JWT payload
@@ -160,7 +166,7 @@ async function proxyRequest(request) {
     return jsonResponse(
       error.name === "TimeoutError"
         ? { code: 504, message: "Request timed out after 30 seconds" }
-        : { code: 500, message: `Proxy error: ${error.name} - ${error.message}` },
+        : { code: 500, message: `Proxy error: ${error.name} - ${error.message}` }
     );
   }
 
