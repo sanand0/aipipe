@@ -181,7 +181,7 @@ t.test("OpenAI completion and cost", async (t) => {
   const token = await testToken();
   const usageStart = await getUsage(token);
 
-  const model = "gpt-4.1-nano";
+  const model = "gpt-5-nano";
   const res = await fetch("/openai/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
@@ -199,7 +199,7 @@ t.test("OpenAI responses streaming completion and cost", async (t) => {
   const token = await testToken();
   const usageStart = await getUsage(token);
 
-  const model = "gpt-4.1-nano";
+  const model = "gpt-5-nano";
   const res = await fetch("/openai/v1/responses", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
