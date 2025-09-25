@@ -10,10 +10,11 @@ export function updateHeaders(headers, skip, update) {
   return result;
 }
 
-export function addCors(headers) {
+export function addCors(headers, request) {
   headers.set("access-control-allow-origin", "*");
   headers.set("access-control-allow-methods", "GET, POST");
-  headers.set("access-control-allow-headers", "Authorization, Content-Type");
+  const requestedHeaders = request?.headers?.get("Access-Control-Request-Headers");
+  headers.set("access-control-allow-headers", requestedHeaders || "Authorization, Content-Type");
   headers.set("access-control-expose-headers", "*");
   return headers;
 }

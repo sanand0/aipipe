@@ -7,19 +7,23 @@ export { AIPipeCost } from "./cost.js";
 let config;
 try {
   config = await import("./config.js");
-} catch (error) {
+} catch {
   config = await import("./config.example.js");
 }
-const {budget, salt} = config;
+const { budget, salt } = config;
 
 const SKIP_REQUEST_HEADERS = [/^content-length$/i, /^host$/i, /^cf-.*$/i, /^connection$/i, /^accept-encoding$/i];
 const SKIP_RESPONSE_HEADERS = [/^transfer-encoding$/i, /^connection$/i, /^content-security-policy$/i];
 
 export default {
   async fetch(request, env) {
+    const jsonResponse = (obj) => _jsonResponse(obj, request);
+
     // If the request is a preflight request, return early
     if (request.method == "OPTIONS")
-      return new Response(null, { headers: addCors(new Headers({ "Access-Control-Max-Age": "86400" })) });
+      return new Response(null, {
+        headers: addCors(new Headers({ "Access-Control-Max-Age": "86400" }), request),
+      });
 
     // We use providers to handle different LLMs.
     // The provider is the first part of the path between /.../ -- e.g. /openai/
@@ -27,7 +31,8 @@ export default {
     const provider = url.pathname.split("/")[1];
 
     // If token was requested, verify user and share token
-    if (provider == "token") return await tokenFromCredential(url.searchParams.get("credential"), env.AIPIPE_SECRET);
+    if (provider == "token")
+      return jsonResponse(await tokenFromCredential(url.searchParams.get("credential"), env.AIPIPE_SECRET));
 
     // Check if the URL matches a valid provider. Else let the user know
     if (!providers[provider] && provider != "usage" && provider != "admin" && provider != "proxy")
@@ -124,21 +129,22 @@ export default {
     // TODO: If the response is not JSON or SSE (e.g. image), handle cost.
 
     return new Response(body, {
-      headers: addCors(updateHeaders(response.headers, SKIP_RESPONSE_HEADERS)),
+      headers: addCors(updateHeaders(response.headers, SKIP_RESPONSE_HEADERS), request),
       status: response.status,
       statusText: response.statusText,
     });
   },
 };
 
-function jsonResponse({ code, ...rest }) {
+function _jsonResponse({ code, ...rest }, request) {
   return new Response(JSON.stringify(rest, null, 2), {
     status: code,
-    headers: addCors(new Headers({ "Content-Type": "application/json" })),
+    headers: addCors(new Headers({ "Content-Type": "application/json" }), request),
   });
 }
 
 async function proxyRequest(request) {
+  const jsonResponse = (obj) => _jsonResponse(obj, request);
   const targetUrl = request.url.split("/proxy/")[1];
   if (!targetUrl.startsWith("http")) return jsonResponse({ code: 400, message: "URL must begin with http" });
 
@@ -160,13 +166,13 @@ async function proxyRequest(request) {
     return jsonResponse(
       error.name === "TimeoutError"
         ? { code: 504, message: "Request timed out after 30 seconds" }
-        : { code: 500, message: `Proxy error: ${error.name} - ${error.message}` },
+        : { code: 500, message: `Proxy error: ${error.name} - ${error.message}` }
     );
   }
 
   // return the upstream response with cors and stripped headers
   return new Response(response.body, {
-    headers: addCors(updateHeaders(response.headers, SKIP_RESPONSE_HEADERS, { "X-Proxy-URL": targetUrl })),
+    headers: addCors(updateHeaders(response.headers, SKIP_RESPONSE_HEADERS, { "X-Proxy-URL": targetUrl }), request),
     status: response.status,
     statusText: response.statusText,
   });
@@ -193,12 +199,12 @@ async function tokenFromCredential(credential, secret) {
     issuer: "https://accounts.google.com",
     audience: "1098061226510-1gn6mjnpdi30jiehanff71ri0ejva0t7.apps.googleusercontent.com",
   });
-  if (!payload.email_verified) return jsonResponse({ code: 401, message: "Invalid Google credentials" });
+  if (!payload.email_verified) return { code: 401, message: "Invalid Google credentials" };
 
   const params = { email: payload.email };
   if (salt[payload.email]) params.salt = salt[payload.email];
   const token = await new jose.SignJWT(params)
     .setProtectedHeader({ alg: "HS256" })
     .sign(new TextEncoder().encode(secret));
-  return jsonResponse({ code: 200, token, ...payload });
+  return { code: 200, token, ...payload };
 }

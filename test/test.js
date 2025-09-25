@@ -34,11 +34,7 @@ t.test("README Authorization examples include Bearer prefix", async (t) => {
     ([, header]) => !/Bearer\s+/i.test(header),
   );
 
-  t.same(
-    invalidAuthorizations,
-    [],
-    invalidAuthorizations.map(([, header]) => header.trim()).join(", "),
-  );
+  t.same(invalidAuthorizations, [], invalidAuthorizations.map(([, header]) => header.trim()).join(", "));
 });
 
 t.test("CORS headers", async (t) => {
@@ -47,6 +43,17 @@ t.test("CORS headers", async (t) => {
   t.equal(res.headers.get("Access-Control-Allow-Origin"), "*");
   t.equal(res.headers.get("Access-Control-Allow-Methods"), "GET, POST");
   t.equal(res.headers.get("Access-Control-Max-Age"), "86400");
+});
+
+t.test("CORS allows requested headers", async (t) => {
+  const requestedHeaders = "X-Custom-Header";
+  const res = await fetch("/openrouter/v1/models", {
+    method: "OPTIONS",
+    headers: { "Access-Control-Request-Headers": requestedHeaders },
+  });
+
+  t.equal(res.status, 200);
+  t.equal(res.headers.get("Access-Control-Allow-Headers"), requestedHeaders);
 });
 
 t.test("Authorization required", async (t) => {
