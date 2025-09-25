@@ -8,16 +8,10 @@ const budget = {
 
   // Domain-wide policy: moderate weekly quota for organization
   "@example.com": { limit: 1.0, days: 7 }, // Domain-wide policy: moderate weekly quota for organization
-
-  // Quotas applied for https://aipipe.org/
-  "@study.iitm.ac.in": { limit: 1.0, days: 7 }, // IITM Students: $1 / week
-  "@ds.study.iitm.ac.in": { limit: 1.0, days: 7 }, // IITM Students: $1 / week
-  "@straive.com": { limit: 1.0, days: 1 }, // Straive: $1 / day
-  "@gramener.com": { limit: 1.0, days: 1 }, // Gramener: $1 / day
 };
 
 // If a user reports their key as stolen, add/change their salt to new random text.
-// That will invalidate their token.
+// That will invalidate their earlier tokens.
 const salt = {
   "user@example.com": "random-text",
 };

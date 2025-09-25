@@ -430,7 +430,7 @@ cd aipipe
 npm install
 ```
 
-2. Configure budgets and security in `src/config.js`. For example:
+2. Copy `src/config.example.js` to `src/config.js` and update budgets and salts. If `src/config.js` is missing, AIPipe falls back to `config.example.js`. For example:
 
 ```js
 // Set a budget limit for specific email IDs or domains
@@ -557,7 +557,7 @@ Response:
 - `src/worker.js`: Main entry point. Handles authentication, proxying with streaming, cost tracking
 - `src/providers.js`: Defines parameters for each LLM providers, e.g. endpoints, API keys, cost calculation
 - `src/cost.js`: Tracks daily cost per user via Durable Objects
-- `src/config.js`: Configuration for budget limits by user/domain, token invalidation
+- `src/config.example.js`: Sample configuration to copy into `src/config.js`
 - `src/utils.js`: Utilities to manage headers, etc.
 
 ### Database Schema

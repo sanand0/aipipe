@@ -1,7 +1,7 @@
 import t from "tap";
 import { readFileSync } from "fs";
 import { Agent } from "undici";
-import { budget, salt } from "../src/config.js";
+import { budget, salt } from "../src/config.example.js";
 import { createToken, ymd } from "../src/utils.js";
 
 // Get base URL environment or default to localhost:8787

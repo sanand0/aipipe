@@ -2,3 +2,4 @@ node_modules/
 .tap/
 .wrangler/
 .dev.vars
+src/config.js

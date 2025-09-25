@@ -1,8 +1,16 @@
-import { budget, salt } from "./config.js";
 import * as jose from "jose";
 import { providers, sseTransform } from "./providers.js";
 import { updateHeaders, addCors, createToken } from "./utils.js";
 export { AIPipeCost } from "./cost.js";
+
+// Load budget and salt from config.js, else config.example.js
+let config;
+try {
+  config = await import("./config.js");
+} catch (error) {
+  config = await import("./config.example.js");
+}
+const {budget, salt} = config;
 
 const SKIP_REQUEST_HEADERS = [/^content-length$/i, /^host$/i, /^cf-.*$/i, /^connection$/i, /^accept-encoding$/i];
 const SKIP_RESPONSE_HEADERS = [/^transfer-encoding$/i, /^connection$/i, /^content-security-policy$/i];
