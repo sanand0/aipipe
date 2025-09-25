@@ -182,15 +182,50 @@ curl https://aipipe.org/openrouter/v1/chat/completions \
   -d '{"model": "google/gemini-2.0-flash-lite-001", "messages": [{ "role": "user", "content": "What is 2 + 2?" }] }'
 ```
 
-Response:
+Response contains:
 
 ```jsonc
 {
-  "id": "gen-...",
-  "provider": "Google",
-  "model": "google/gemini-2.0-flash-lite-001",
-  "object": "chat.completion",
-  // ...
+  "choices": [
+    {
+      "message": {
+        "role": "assistant",
+        "content": "...",
+      },
+    },
+  ],
+}
+```
+
+#### OpenRouter Image Generation
+
+```bash
+curl https://aipipe.org/openrouter/v1/chat/completions \
+  -H "Authorization: Bearer $AIPIPE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "google/gemini-2.5-flash-image-preview",
+    "messages": [{"role": "user", "content": "Draw a cat"}],
+    "modalities": ["image", "text"]
+  }'
+```
+
+Response contains:
+
+```jsonc
+{
+  "choices": [
+    {
+      "message": {
+        "images": [
+          {
+            "type": "image_url",
+            "image_url": { "url": "data:image/png;base64,iVBORw0K..." },
+          },
+        ],
+      },
+    },
+  ],
 }
 ```
 
@@ -204,7 +239,7 @@ Response:
 curl https://aipipe.org/openai/v1/models -H "Authorization: Bearer $AIPIPE_TOKEN"
 ```
 
-Response:
+Response contains:
 
 ```jsonc
 {
@@ -230,14 +265,10 @@ curl https://aipipe.org/openai/v1/responses \
   -d '{"model": "gpt-4.1-nano", "input": "What is 2 + 2?" }'
 ```
 
-Response:
+Response contains:
 
 ```jsonc
 {
-  "id": "resp_...",
-  "object": "response",
-  "model": "gpt-4.1-nano-2025-04-14",
-  // ...
   "output": [
     {
       "role": "assistant",
@@ -257,7 +288,7 @@ curl https://aipipe.org/openai/v1/embeddings \
   -d '{"model": "text-embedding-3-small", "input": "What is 2 + 2?" }'
 ```
 
-Response:
+Response contains:
 
 ```jsonc
 {
@@ -293,7 +324,7 @@ curl https://aipipe.org/geminiv1beta/models/gemini-1.5-flash:generateContent \
   -d '{"contents":[{"parts":[{"text":"What is 2 + 2?"}]}]}'
 ```
 
-Response:
+Response contains:
 
 ```jsonc
 {
@@ -316,7 +347,7 @@ curl https://aipipe.org/geminiv1beta/models/gemini-embedding-001:embedContent \
   -d '{"model":"gemini-embedding-001","content":{"parts":[{"text":"What is 2 + 2?"}]}}'
 ```
 
-Response:
+Response contains:
 
 ```jsonc
 {
@@ -343,7 +374,7 @@ curl https://aipipe.org/similarity \
   }'
 ```
 
-Response:
+Response contains:
 
 ```jsonc
 {
@@ -372,7 +403,7 @@ curl https://aipipe.org/similarity \
   }'
 ```
 
-Response:
+Response contains:
 
 ```jsonc
 {

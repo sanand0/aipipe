@@ -32,17 +32,20 @@ export const providers = {
       ...(request.method == "POST" ? { body: await request.arrayBuffer() } : {}),
     }),
     cost: async ({ model, usage }) => {
+      // We can't look up https://openrouter.ai/api/v1/generation
+      // It usually takes a few seconds to get updated. So we calculate the cost ourselves.
       const { pricing } = await getOpenrouterModel(model);
       const cost =
         (usage?.prompt_tokens * pricing?.prompt || 0) +
         (usage?.completion_tokens * pricing?.completion || 0) +
+        (usage?.completion_tokens_details?.reasoning_tokens * pricing?.internal_reasoning || 0) +
+        (usage?.completion_tokens_details?.image_tokens * pricing?.image || 0) +
         (+pricing?.request || 0);
       return { cost };
     },
     parse: (event) => {
       event = event.response ?? event;
-      const usage = parseUsage(event.usage);
-      return { model: event.model, usage };
+      return { ...event, usage: parseUsage(event.usage) };
     },
   },
 
@@ -50,10 +53,13 @@ export const providers = {
     transform: async ({ path, request, env }) => {
       let body;
       if (request.method == "POST") {
+        // For chat POSTs, get { model }. Reject if model pricing unknown
         if (!request.headers.get("Content-Type")?.includes("application/json"))
           return { error: { code: 400, message: "Pass a JSON body with {model} so we can calculate cost" } };
         const json = await request.json();
         if (!openaiCost[json.model]) return { error: { code: 400, message: `Model ${json.model} pricing unknown` } };
+
+        // If streaming chat completion, request usage in the response
         if (json.stream && path.includes("chat/completions")) json.stream_options = { include_usage: true };
         body = JSON.stringify(json);
       }
@@ -65,8 +71,7 @@ export const providers = {
     },
     cost: async ({ model, usage }) => ({ cost: tokenCost(openaiCost, model, usage) }),
     parse: (event) => {
-      event = event.response ?? event;
-      return { model: event.model, usage: event.usage };
+      return { ...(event.response ?? event) };
     },
   },
 
@@ -74,10 +79,12 @@ export const providers = {
     transform: async ({ path, request, env }) => {
       let json, model;
       if (request.method == "POST" && request.headers.get("Content-Type")?.includes("application/json")) {
+        // For chat POSTs, get { model }. Reject if model pricing unknown
         json = await request.json();
         model = json.model ?? path.match(/models\/([^:]+)/)?.[1];
         if (model && !geminiCost[model]) return { error: { code: 400, message: `Model ${model} pricing unknown` } };
       }
+      // If OK, rewrite Authorization header
       return {
         url: `https://generativelanguage.googleapis.com/v1beta${path}`,
         headers: updateHeaders(request.headers, [/^authorization$/i], { "x-goog-api-key": env["GEMINI_API_KEY"] }),
@@ -102,7 +109,7 @@ export const providers = {
     parse: (event) => {
       event = event.response ?? event;
       const usage = parseUsage(event.usage ?? event.usageMetadata);
-      return { model: event.model ?? event.modelVersion, usage };
+      return { ...event, model: event.model ?? event.modelVersion, usage };
     },
   },
 

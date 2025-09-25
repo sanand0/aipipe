@@ -104,17 +104,11 @@ export default {
       ...params,
     });
 
-    // Add the cost based on provider's cost
+    // addCost() is called by each SSE event or the final response. Adds to total cost
     const parse = providers[provider].parse;
     const addCost = async (data) => {
       const parsed = parse ? parse(data) : data;
-      const { cost } = await providers[provider].cost({
-        model: parsed.model,
-        usage: parsed.usage,
-        env,
-        path,
-        body: params.body,
-      });
+      const { cost } = await providers[provider].cost({ ...parsed, env, path, body: params.body });
       if (cost > 0) await aiPipeCost.add(email, cost);
     };
 
