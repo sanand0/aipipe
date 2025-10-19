@@ -5,7 +5,8 @@
   "scripts": {
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
-    "test": "tap run",
+    "test:live": "tap run",
+    "test": "WRANGLER_LOG=none vitest run",
     "lint": "npx -y prettier@3.5 --print-width 120 '**/*.{js,md}' --write && npx -y oxlint --fix",
     "prepublishOnly": "npm run lint"
   },
@@ -14,7 +15,9 @@
   },
   "type": "module",
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.9.13",
     "tap": "^21.1.0",
+    "vitest": "^3.2.4",
     "wrangler": "^4.12.0"
   },
   "dependencies": {

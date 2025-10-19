@@ -1,0 +1,21 @@
+[
+  {
+    "name": "chat-completion",
+    "request": "openrouter-chat",
+    "token": { "email": "test@example.com" },
+    "expect": {
+      "status": 200,
+      "body": { "responseFixture": "openrouter-chat.json" },
+      "usageDelta": 0.00024
+    }
+  },
+  {
+    "name": "chat-completion-stream",
+    "request": "openrouter-chat-stream",
+    "token": { "email": "test@example.com" },
+    "expect": {
+      "status": 200,
+      "usageDelta": 0.00035
+    }
+  }
+]

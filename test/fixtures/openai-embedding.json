@@ -1,0 +1,66 @@
+{
+  "description": "Embed text via OpenAI embeddings endpoint",
+  "method": "POST",
+  "path": "/openai/v1/embeddings",
+  "headers": {
+    "Authorization": "Bearer {{token}}",
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "model": "text-embedding-3-small",
+    "input": "Testing embeddings"
+  },
+  "mock": {
+    "origin": "https://api.openai.com",
+    "path": "/v1/embeddings",
+    "method": "POST",
+    "response": {
+      "status": 200,
+      "headers": {
+        "content-type": "application/json"
+      },
+      "body": {
+        "object": "list",
+        "data": [
+          {
+            "index": 0,
+            "object": "embedding",
+            "embedding": [
+              0.0123,
+              -0.0456,
+              0.0789
+            ]
+          }
+        ],
+        "model": "text-embedding-3-small",
+        "usage": {
+          "prompt_tokens": 8
+        }
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "object": "list",
+      "data": [
+        {
+          "index": 0,
+          "object": "embedding",
+          "embedding": [
+            0.0123,
+            -0.0456,
+            0.0789
+          ]
+        }
+      ],
+      "model": "text-embedding-3-small",
+      "usage": {
+        "prompt_tokens": 8
+      }
+    }
+  }
+}

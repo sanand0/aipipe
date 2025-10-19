@@ -1,0 +1,5 @@
+{
+  "description": "Preflight request for OpenRouter models endpoint",
+  "method": "OPTIONS",
+  "path": "/openrouter/v1/models"
+}

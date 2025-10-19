@@ -166,7 +166,7 @@ async function proxyRequest(request) {
     return jsonResponse(
       error.name === "TimeoutError"
         ? { code: 504, message: "Request timed out after 30 seconds" }
-        : { code: 500, message: `Proxy error: ${error.name} - ${error.message}` }
+        : { code: 500, message: `Proxy error: ${error.name} - ${error.message}` },
     );
   }
 

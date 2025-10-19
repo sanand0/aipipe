@@ -1,0 +1,41 @@
+{
+  "description": "Responses endpoint with streaming",
+  "method": "POST",
+  "path": "/openai/v1/responses",
+  "headers": {
+    "Authorization": "Bearer {{token}}",
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "model": "gpt-5-nano",
+    "input": "Say something witty",
+    "stream": true
+  },
+  "mock": {
+    "origin": "https://api.openai.com",
+    "path": "/v1/responses",
+    "method": "POST",
+    "response": {
+      "status": 200,
+      "headers": {
+        "content-type": "text/event-stream"
+      },
+      "sse": [
+        "data: {\"id\":\"resp-test\",\"object\":\"response.output_text.delta\",\"model\":\"gpt-5-nano\",\"output\":[{\"content\":[{\"text\":\"Witty line\",\"type\":\"output_text\"}],\"id\":\"output-1\",\"type\":\"output_text\"}]}",
+        "data: {\"id\":\"resp-test\",\"object\":\"response.completed\",\"model\":\"gpt-5-nano\",\"usage\":{\"prompt_tokens\":15,\"completion_tokens\":10}}",
+        "data: [DONE]"
+      ]
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "text/event-stream"
+    },
+    "sse": [
+      "data: {\"id\":\"resp-test\",\"object\":\"response.output_text.delta\",\"model\":\"gpt-5-nano\",\"output\":[{\"content\":[{\"text\":\"Witty line\",\"type\":\"output_text\"}],\"id\":\"output-1\",\"type\":\"output_text\"}]}",
+      "data: {\"id\":\"resp-test\",\"object\":\"response.completed\",\"model\":\"gpt-5-nano\",\"usage\":{\"prompt_tokens\":15,\"completion_tokens\":10}}",
+      "data: [DONE]"
+    ]
+  }
+}

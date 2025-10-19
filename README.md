@@ -334,7 +334,11 @@ Response contains:
     },
   ],
   "modelVersion": "gemini-1.5-flash",
-  "usageMetadata": { "promptTokenCount": 8, "candidatesTokenCount": 8, "totalTokenCount": 16 },
+  "usageMetadata": {
+    "promptTokenCount": 8,
+    "candidatesTokenCount": 8,
+    "totalTokenCount": 16,
+  },
 }
 ```
 

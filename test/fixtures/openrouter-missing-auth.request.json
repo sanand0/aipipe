@@ -1,0 +1,5 @@
+{
+  "description": "Direct GET without Authorization header",
+  "method": "GET",
+  "path": "/openrouter/v1/models"
+}

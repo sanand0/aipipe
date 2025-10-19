@@ -1,0 +1,17 @@
+{
+  "status": 200,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "body": {
+    "data": [
+      { "embedding": [1, 0] },
+      { "embedding": [0, 1] },
+      { "embedding": [1, 0] },
+      { "embedding": [0, 1] }
+    ],
+    "usage": {
+      "prompt_tokens": 8
+    }
+  }
+}

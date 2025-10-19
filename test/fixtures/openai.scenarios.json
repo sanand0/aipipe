@@ -1,0 +1,31 @@
+[
+  {
+    "name": "embedding",
+    "request": "openai-embedding",
+    "token": { "email": "test@example.com" },
+    "expect": {
+      "status": 200,
+      "body": { "responseFixture": "openai-embedding.json" },
+      "usageDelta": 0.00000016
+    }
+  },
+  {
+    "name": "chat-completion",
+    "request": "openai-chat-completions",
+    "token": { "email": "test@example.com" },
+    "expect": {
+      "status": 200,
+      "body": { "responseFixture": "openai-chat-completions.json" },
+      "usageDelta": 0.000003
+    }
+  },
+  {
+    "name": "responses-stream",
+    "request": "openai-responses-stream",
+    "token": { "email": "test@example.com" },
+    "expect": {
+      "status": 200,
+      "usageDelta": 0.00000475
+    }
+  }
+]
