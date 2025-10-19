@@ -1,6 +1,6 @@
 import * as jose from "jose";
 import { providers, sseTransform } from "./providers.js";
-import { updateHeaders, addCors, createToken } from "./utils.js";
+import { addCors, createToken, updateHeaders } from "./utils.js";
 export { AIPipeCost } from "./cost.js";
 
 // Load budget and salt from config.js, else config.example.js
@@ -20,10 +20,11 @@ export default {
     const jsonResponse = (obj) => _jsonResponse(obj, request);
 
     // If the request is a preflight request, return early
-    if (request.method == "OPTIONS")
+    if (request.method == "OPTIONS") {
       return new Response(null, {
         headers: addCors(new Headers({ "Access-Control-Max-Age": "86400" }), request),
       });
+    }
 
     // We use providers to handle different LLMs.
     // The provider is the first part of the path between /.../ -- e.g. /openai/
@@ -31,12 +32,14 @@ export default {
     const provider = url.pathname.split("/")[1];
 
     // If token was requested, verify user and share token
-    if (provider == "token")
+    if (provider == "token") {
       return jsonResponse(await tokenFromCredential(url.searchParams.get("credential"), env.AIPIPE_SECRET));
+    }
 
     // Check if the URL matches a valid provider. Else let the user know
-    if (!providers[provider] && provider != "usage" && provider != "admin" && provider != "proxy")
+    if (!providers[provider] && provider != "usage" && provider != "admin" && provider != "proxy") {
       return jsonResponse({ code: 404, message: `Unknown provider: ${provider}` });
+    }
 
     if (provider === "proxy") return proxyRequest(request);
 
@@ -44,10 +47,9 @@ export default {
     //  Authorization: Bearer <token> (for OpenAI, OpenRouter, etc.)
     //  Authorization: <token> (for backward compatibility)
     //  x-goog-api-key: <token> (for Google API key support)
-    const token =
-      (request.headers.get("Authorization") ?? "").replace(/^Bearer\s*/, "").trim() ||
-      request.headers.get("x-goog-api-key") ||
-      "";
+    const token = (request.headers.get("Authorization") ?? "").replace(/^Bearer\s*/, "").trim()
+      || request.headers.get("x-goog-api-key")
+      || "";
     if (!token) return jsonResponse({ code: 401, message: "Missing Authorization: Bearer token" });
 
     // Token must contain a valid JWT payload
@@ -187,8 +189,9 @@ async function validateToken(token, secret) {
   } catch (err) {
     return { error: `Bearer ${token} is invalid: ${err}` };
   }
-  if (salt[payload.email] && salt[payload.email] != payload.salt)
+  if (salt[payload.email] && salt[payload.email] != payload.salt) {
     return { error: `Bearer ${token} is no longer valid` };
+  }
   return payload;
 }
 

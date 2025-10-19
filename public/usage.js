@@ -1,4 +1,4 @@
-import { render, html } from "https://cdn.jsdelivr.net/npm/lit-html@3/+esm";
+import { html, render } from "https://cdn.jsdelivr.net/npm/lit-html@3/+esm";
 
 async function showUsage($usage, token, email) {
   const { cost, limit, days, usage } = await fetch("usage", { headers: { Authorization: `Bearer ${token}` } }).then(
@@ -23,13 +23,15 @@ async function showUsage($usage, token, email) {
         </tr>
       </thead>
       <tbody>
-        ${usage.map(
-          (day) =>
-            html` <tr>
+        ${
+    usage.map(
+      (day) =>
+        html` <tr>
               <td>${day.date}</td>
               <td>${(day.cost * 100).toFixed(5)}</td>
             </tr>`,
-        )}
+    )
+  }
       </tbody>
     </table>
   `;

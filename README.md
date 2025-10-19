@@ -166,10 +166,10 @@ Response:
   "data": [
     {
       "id": "google/gemini-2.5-pro-preview-03-25",
-      "name": "Google: Gemini 2.5 Pro Preview",
+      "name": "Google: Gemini 2.5 Pro Preview"
       // ...
-    },
-  ],
+    }
+  ]
 }
 ```
 
@@ -190,10 +190,10 @@ Response contains:
     {
       "message": {
         "role": "assistant",
-        "content": "...",
-      },
-    },
-  ],
+        "content": "..."
+      }
+    }
+  ]
 }
 ```
 
@@ -220,12 +220,12 @@ Response contains:
         "images": [
           {
             "type": "image_url",
-            "image_url": { "url": "data:image/png;base64,iVBORw0K..." },
-          },
-        ],
-      },
-    },
-  ],
+            "image_url": { "url": "data:image/png;base64,iVBORw0K..." }
+          }
+        ]
+      }
+    }
+  ]
 }
 ```
 
@@ -249,10 +249,10 @@ Response contains:
       "id": "gpt-4o-audio-preview-2024-12-17",
       "object": "model",
       "created": 1734034239,
-      "owned_by": "system",
-    },
+      "owned_by": "system"
+    }
     // ...
-  ],
+  ]
 }
 ```
 
@@ -272,10 +272,10 @@ Response contains:
   "output": [
     {
       "role": "assistant",
-      "content": [{ "text": "2 + 2 equals 4." }],
+      "content": [{ "text": "2 + 2 equals 4." }]
       // ...
-    },
-  ],
+    }
+  ]
 }
 ```
 
@@ -298,16 +298,17 @@ Response contains:
       "object": "embedding",
       "index": 0,
       "embedding": [
-        0.010576399, -0.037246477,
+        0.010576399,
+        -0.037246477
         // ...
-      ],
-    },
+      ]
+    }
   ],
   "model": "text-embedding-3-small",
   "usage": {
     "prompt_tokens": 8,
-    "total_tokens": 8,
-  },
+    "total_tokens": 8
+  }
 }
 ```
 
@@ -330,15 +331,15 @@ Response contains:
 {
   "candidates": [
     {
-      "content": { "parts": [{ "text": "2 + 2 is 4." }] },
-    },
+      "content": { "parts": [{ "text": "2 + 2 is 4." }] }
+    }
   ],
   "modelVersion": "gemini-1.5-flash",
   "usageMetadata": {
     "promptTokenCount": 8,
     "candidatesTokenCount": 8,
-    "totalTokenCount": 16,
-  },
+    "totalTokenCount": 16
+  }
 }
 ```
 
@@ -356,7 +357,7 @@ Response contains:
 ```jsonc
 {
   "embedding": { "values": [0.01, -0.02] },
-  "usageMetadata": { "tokenCount": 8 },
+  "usageMetadata": { "tokenCount": 8 }
 }
 ```
 
@@ -385,9 +386,9 @@ Response contains:
   "model": "text-embedding-3-small",
   "similarity": [
     [0.82345, 0.12345], // Similarity scores for first doc against each topic
-    [0.81234, 0.23456], // Similarity scores for second doc against each topic
+    [0.81234, 0.23456] // Similarity scores for second doc against each topic
   ],
-  "tokens": 42,
+  "tokens": 42
 }
 ```
 
@@ -415,9 +416,9 @@ Response contains:
   "similarity": [
     [1.0, 0.82345, 0.71234], // First doc's similarity with all docs
     [0.82345, 1.0, 0.6789], // Second doc's similarity with all docs
-    [0.71234, 0.6789, 1.0], // Third doc's similarity with all docs
+    [0.71234, 0.6789, 1.0] // Third doc's similarity with all docs
   ],
-  "tokens": 63,
+  "tokens": 63
 }
 ```
 
@@ -547,10 +548,10 @@ Response:
     {
       "email": "test@example.com",
       "date": "2025-04-18",
-      "cost": 25.5,
-    },
+      "cost": 25.5
+    }
     // ...
-  ],
+  ]
 }
 ```
 

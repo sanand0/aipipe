@@ -1,4 +1,4 @@
-#:schema node_modules/wrangler/config-schema.json
+# :schema node_modules/wrangler/config-schema.json
 
 name = "aipipe"
 main = "src/worker.js"
@@ -19,4 +19,4 @@ class_name = "AIPipeCost"
 
 [[migrations]]
 tag = "v1"
-new_sqlite_classes = [ "AIPipeCost" ]
+new_sqlite_classes = ["AIPipeCost"]

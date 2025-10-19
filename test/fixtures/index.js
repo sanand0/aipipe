@@ -70,8 +70,9 @@ export async function registerMockFromFixture(fetchMock, requestFixture, replace
     const origin = mock.origin;
     const method = (mock.method ?? "GET").toUpperCase();
     const methodLower = method.toLowerCase();
-    const responseFixture =
-      typeof mock.response === "string" ? await loadJSONFixture(mock.response) : structuredClone(mock.response);
+    const responseFixture = typeof mock.response === "string"
+      ? await loadJSONFixture(mock.response)
+      : structuredClone(mock.response);
     const resolvedResponse = applyPlaceholders(responseFixture, replacements);
 
     const headers = { ...resolvedResponse.headers };

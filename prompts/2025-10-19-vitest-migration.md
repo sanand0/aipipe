@@ -60,7 +60,10 @@ Adopt **Option B**:
    test("usage endpoint returns Durable Object data", async () => {
      const id = env.AIPIPE_COST.idFromName("default");
      const stub = env.AIPIPE_COST.get(id);
-     await runInDurableObject(stub, (_, state) => state.storage.put("2025-01-01:test@example.com", 42));
+     await runInDurableObject(
+       stub,
+       (_, state) => state.storage.put("2025-01-01:test@example.com", 42),
+     );
 
      const response = await SELF.fetch("https://example.com/usage", {
        headers: { Authorization: `Bearer ${await createTestToken()}` },
@@ -158,10 +161,14 @@ test/
    const FIXTURE_ROOT = new URL("../fixtures/", import.meta.url);
 
    export async function loadScenario(name) {
-     const spec = JSON.parse(await readFile(new URL(`requests/${name}.json`, FIXTURE_ROOT)));
+     const spec = JSON.parse(
+       await readFile(new URL(`requests/${name}.json`, FIXTURE_ROOT)),
+     );
      let response;
      try {
-       response = JSON.parse(await readFile(new URL(`responses/${name}.json`, FIXTURE_ROOT)));
+       response = JSON.parse(
+         await readFile(new URL(`responses/${name}.json`, FIXTURE_ROOT)),
+       );
      } catch {
        response = null;
      }
@@ -178,10 +185,13 @@ test/
    test("enforces usage limit", async () => {
      const { spec } = await loadScenario("limit-reached");
      await seedDurableObject(env.AIPIPE_COST, spec.durableSeed);
-     const response = await SELF.fetch(`https://example.com${spec.request.path}`, {
-       method: spec.request.method,
-       headers: { Authorization: `Bearer ${await createTestToken()}` },
-     });
+     const response = await SELF.fetch(
+       `https://example.com${spec.request.path}`,
+       {
+         method: spec.request.method,
+         headers: { Authorization: `Bearer ${await createTestToken()}` },
+       },
+     );
      expect(response.status).toBe(429);
    });
    ```

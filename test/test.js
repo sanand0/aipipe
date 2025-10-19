@@ -1,5 +1,5 @@
-import t from "tap";
 import { readFileSync } from "fs";
+import t from "tap";
 import { Agent } from "undici";
 import { budget, salt } from "../src/config.example.js";
 import { createToken, ymd } from "../src/utils.js";

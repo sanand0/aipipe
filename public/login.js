@@ -8,7 +8,7 @@ const $usage = document.querySelector("#usage");
 const redirect = new URLSearchParams(location.search).get("redirect");
 
 // https://developers.google.com/identity/gsi/web/reference/js-reference
-window.onload = function () {
+window.onload = function() {
   google.accounts.id.initialize({
     // https://console.cloud.google.com/auth/clients?project=s-anand-net
     client_id: "1098061226510-1gn6mjnpdi30jiehanff71ri0ejva0t7.apps.googleusercontent.com",
@@ -37,9 +37,8 @@ window.onload = function () {
  *                           Default: returns {html, text} from selector in [data-copy].
  */
 export function copyAction($root, content) {
-  content =
-    content ??
-    ((el) => {
+  content = content
+    ?? ((el) => {
       const $el = $root.querySelector(el.dataset.copy);
       return $el.value ? { text: $el.value } : { html: $el.innerHTML, text: $el.textContent };
     });

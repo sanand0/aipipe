@@ -19,7 +19,10 @@ The Vitest suites are safer and faster because every outbound provider call is s
    {
      "status": 200,
      "headers": { "content-type": "text/event-stream" },
-     "sse": ["data: {\"model\":\"gpt-5-nano\",\"choices\":[...]}", "data: [DONE]"]
+     "sse": [
+       "data: {\"model\":\"gpt-5-nano\",\"choices\":[...]}",
+       "data: [DONE]"
+     ]
    }
    ```
 
