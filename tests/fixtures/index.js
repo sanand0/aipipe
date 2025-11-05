@@ -1,3 +1,4 @@
+// @ts-check
 const PLACEHOLDER_PATTERN = /\{\{(\w+)\}\}/g;
 const DAY_MS = 24 * 60 * 60 * 1000;
 

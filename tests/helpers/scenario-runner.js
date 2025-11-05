@@ -1,3 +1,4 @@
+// @ts-check
 import { env, SELF } from "cloudflare:test";
 import { expect } from "vitest";
 import { salt } from "../../src/config.example.js";

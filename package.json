@@ -5,7 +5,7 @@
   "scripts": {
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
-    "test:live": "tap run",
+    "test:live": "WRANGLER_LOG=none vitest --watch",
     "test": "WRANGLER_LOG=none vitest run",
     "lint": "dprint fmt -c https://raw.githubusercontent.com/sanand0/scripts/refs/heads/main/dprint.jsonc && npx -y oxlint --fix",
     "prepublishOnly": "npm run lint"
@@ -16,6 +16,8 @@
   "type": "module",
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.9.13",
+    "@vitest/coverage-istanbul": "^3.2.4",
+    "@vitest/coverage-v8": "^3.2.4",
     "tap": "^21.1.0",
     "vitest": "^3.2.4",
     "wrangler": "^4.12.0"

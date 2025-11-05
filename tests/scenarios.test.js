@@ -1,11 +1,12 @@
+// @ts-check
 import { env, runInDurableObject, SELF } from "cloudflare:test";
 import { describe, expect, test } from "vitest";
 import { providers } from "../src/providers.js";
 import { loadJSONFixture, loadResponseFixture, registerMockFromFixture, seedDurableUsage } from "./fixtures/index.js";
-import { setupMockLifecycle } from "./helpers/mock-lifecycle.js";
 import { assertScenarioExpectations, runScenario } from "./helpers/scenario-runner.js";
+import { setupWorkerFetchMock } from "./test-helpers.js";
 
-const fetchMock = setupMockLifecycle();
+const fetchMock = setupWorkerFetchMock();
 
 const getUsage = async (token) => {
   const res = await SELF.fetch("https://example.com/usage", {
