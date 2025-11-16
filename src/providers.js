@@ -4,7 +4,49 @@ import { updateHeaders } from "./utils.js";
 const { openai: openaiCost, gemini: geminiCost } = pricing;
 
 const tokenCost = (pricing, model, usage) => {
-  const [input, output] = pricing[model] ?? [0, 0];
+  const [input, output, audioInput = 0, audioOutput = 0] = pricing[model] ?? [0, 0, 0, 0];
+
+  // Check if we have detailed token breakdowns
+  const hasInputDetails = usage?.prompt_tokens_details || usage?.input_token_details;
+  const hasOutputDetails = usage?.completion_tokens_details;
+
+  // Extract audio token counts from usage details
+  const inputAudioTokens = usage?.prompt_tokens_details?.audio_tokens
+    ?? usage?.input_token_details?.audio_tokens
+    ?? 0;
+  const outputAudioTokens = usage?.completion_tokens_details?.audio_tokens ?? 0;
+
+  // Extract text token counts - if details exist but text_tokens is missing, compute it
+  // Use Math.max(0, ...) to guard against malformed API responses where audio_tokens > total
+  let inputTextTokens, outputTextTokens;
+
+  if (hasInputDetails) {
+    inputTextTokens = usage?.prompt_tokens_details?.text_tokens
+      ?? usage?.input_token_details?.text_tokens
+      ?? Math.max(0, (usage?.prompt_tokens ?? usage?.input_tokens ?? 0) - inputAudioTokens);
+  } else {
+    inputTextTokens = usage?.prompt_tokens ?? usage?.input_tokens ?? 0;
+  }
+
+  if (hasOutputDetails) {
+    outputTextTokens = usage?.completion_tokens_details?.text_tokens
+      ?? Math.max(0, (usage?.completion_tokens ?? usage?.output_tokens ?? 0) - outputAudioTokens);
+  } else {
+    outputTextTokens = usage?.completion_tokens ?? usage?.output_tokens ?? 0;
+  }
+
+  // If we have token details (audio, reasoning, etc.), use detailed pricing
+  const hasTokenDetails = inputAudioTokens > 0 || outputAudioTokens > 0 || hasInputDetails || hasOutputDetails;
+
+  if (hasTokenDetails) {
+    return (
+      (inputTextTokens * input + inputAudioTokens * audioInput
+          + outputTextTokens * output + outputAudioTokens * audioOutput)
+        / 1e6 || 0
+    );
+  }
+
+  // Fallback to simple calculation for models without token details
   return (
     ((usage?.prompt_tokens ?? usage?.input_tokens ?? 0) * input
         + (usage?.completion_tokens ?? usage?.output_tokens ?? 0) * output)
