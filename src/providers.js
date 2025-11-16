@@ -6,24 +6,36 @@ const { openai: openaiCost, gemini: geminiCost } = pricing;
 const tokenCost = (pricing, model, usage) => {
   const [input, output, audioInput = 0, audioOutput = 0] = pricing[model] ?? [0, 0, 0, 0];
 
-  // Extract text and audio token counts from usage details
-  const inputTextTokens = usage?.prompt_tokens_details?.text_tokens
-    ?? usage?.input_token_details?.text_tokens
-    ?? usage?.prompt_tokens
-    ?? usage?.input_tokens
-    ?? 0;
+  // Check if we have detailed token breakdowns
+  const hasInputDetails = usage?.prompt_tokens_details || usage?.input_token_details;
+  const hasOutputDetails = usage?.completion_tokens_details;
+
+  // Extract audio token counts from usage details
   const inputAudioTokens = usage?.prompt_tokens_details?.audio_tokens
     ?? usage?.input_token_details?.audio_tokens
     ?? 0;
-  const outputTextTokens = usage?.completion_tokens_details?.text_tokens
-    ?? usage?.completion_tokens
-    ?? usage?.output_tokens
-    ?? 0;
   const outputAudioTokens = usage?.completion_tokens_details?.audio_tokens ?? 0;
 
-  // If we have audio tokens, use detailed pricing; otherwise fall back to total tokens
-  const hasAudioDetails = inputAudioTokens > 0 || outputAudioTokens > 0
-    || usage?.prompt_tokens_details || usage?.input_token_details || usage?.completion_tokens_details;
+  // Extract text token counts - if details exist but text_tokens is missing, compute it
+  let inputTextTokens, outputTextTokens;
+
+  if (hasInputDetails) {
+    inputTextTokens = usage?.prompt_tokens_details?.text_tokens
+      ?? usage?.input_token_details?.text_tokens
+      ?? (usage?.prompt_tokens ?? usage?.input_tokens ?? 0) - inputAudioTokens;
+  } else {
+    inputTextTokens = usage?.prompt_tokens ?? usage?.input_tokens ?? 0;
+  }
+
+  if (hasOutputDetails) {
+    outputTextTokens = usage?.completion_tokens_details?.text_tokens
+      ?? (usage?.completion_tokens ?? usage?.output_tokens ?? 0) - outputAudioTokens;
+  } else {
+    outputTextTokens = usage?.completion_tokens ?? usage?.output_tokens ?? 0;
+  }
+
+  // If we have audio tokens or detailed breakdowns, use detailed pricing
+  const hasAudioDetails = inputAudioTokens > 0 || outputAudioTokens > 0 || hasInputDetails || hasOutputDetails;
 
   if (hasAudioDetails) {
     return (

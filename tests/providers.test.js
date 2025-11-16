@@ -188,6 +188,45 @@ describe("OpenAI provider", () => {
     // = (22.5 + 0 + 120 + 5600) / 1e6 = 5742.5 / 1e6 = 0.0057425
     expect(usage.cost).toBeCloseTo(0.0057425, 6);
   });
+
+  test("avoids double-counting when token details exist but text_tokens is missing", async () => {
+    const token = await createTestToken();
+    await seedUsage({});
+    replyJson(fetchMock, {
+      origin: "https://api.openai.com",
+      path: "/v1/chat/completions",
+      method: "POST",
+      body: {
+        model: "gpt-4o-audio-preview",
+        choices: [{ message: { role: "assistant", content: "hi" } }],
+        usage: {
+          prompt_tokens: 10,
+          completion_tokens: 20,
+          total_tokens: 30,
+          prompt_tokens_details: { audio_tokens: 5 }, // text_tokens missing - should compute as 10-5=5
+          completion_tokens_details: { audio_tokens: 5 }, // text_tokens missing - should compute as 20-5=15
+        },
+      },
+    });
+
+    const response = await workerFetch("/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-audio-preview",
+        messages: [{ role: "user", content: "Hello" }],
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    const usage = await readUsage(token);
+    // Cost = (5 text input * 2.5 + 5 audio input * 100 + 15 text output * 10 + 5 audio output * 200) / 1e6
+    // = (12.5 + 500 + 150 + 1000) / 1e6 = 1662.5 / 1e6 = 0.0016625
+    expect(usage.cost).toBeCloseTo(0.0016625, 6);
+  });
 });
 
 describe("OpenRouter provider", () => {
