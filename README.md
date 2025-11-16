@@ -233,6 +233,11 @@ Response contains:
 
 **`GET /openai/*`**: Proxy requests to OpenAI
 
+AIPipe supports all OpenAI models that return usage data in their responses, enabling accurate cost tracking.
+This includes chat completion models, audio preview models (e.g. `gpt-4o-audio-preview`), and transcription
+models (e.g. `gpt-4o-transcribe`). Text-to-speech (TTS) models like `tts-1` are **not supported** because they
+return raw audio without usage metadata.
+
 **Example**: List [OpenAI models](https://platform.openai.com/docs/api-reference/models)
 
 ```bash

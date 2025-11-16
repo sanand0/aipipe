@@ -4,7 +4,36 @@ import { updateHeaders } from "./utils.js";
 const { openai: openaiCost, gemini: geminiCost } = pricing;
 
 const tokenCost = (pricing, model, usage) => {
-  const [input, output] = pricing[model] ?? [0, 0];
+  const [input, output, audioInput = 0, audioOutput = 0] = pricing[model] ?? [0, 0, 0, 0];
+
+  // Extract text and audio token counts from usage details
+  const inputTextTokens = usage?.prompt_tokens_details?.text_tokens
+    ?? usage?.input_token_details?.text_tokens
+    ?? usage?.prompt_tokens
+    ?? usage?.input_tokens
+    ?? 0;
+  const inputAudioTokens = usage?.prompt_tokens_details?.audio_tokens
+    ?? usage?.input_token_details?.audio_tokens
+    ?? 0;
+  const outputTextTokens = usage?.completion_tokens_details?.text_tokens
+    ?? usage?.completion_tokens
+    ?? usage?.output_tokens
+    ?? 0;
+  const outputAudioTokens = usage?.completion_tokens_details?.audio_tokens ?? 0;
+
+  // If we have audio tokens, use detailed pricing; otherwise fall back to total tokens
+  const hasAudioDetails = inputAudioTokens > 0 || outputAudioTokens > 0
+    || usage?.prompt_tokens_details || usage?.input_token_details || usage?.completion_tokens_details;
+
+  if (hasAudioDetails) {
+    return (
+      (inputTextTokens * input + inputAudioTokens * audioInput
+        + outputTextTokens * output + outputAudioTokens * audioOutput)
+        / 1e6 || 0
+    );
+  }
+
+  // Fallback to simple calculation for non-audio models
   return (
     ((usage?.prompt_tokens ?? usage?.input_tokens ?? 0) * input
         + (usage?.completion_tokens ?? usage?.output_tokens ?? 0) * output)
