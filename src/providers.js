@@ -17,27 +17,28 @@ const tokenCost = (pricing, model, usage) => {
   const outputAudioTokens = usage?.completion_tokens_details?.audio_tokens ?? 0;
 
   // Extract text token counts - if details exist but text_tokens is missing, compute it
+  // Use Math.max(0, ...) to guard against malformed API responses where audio_tokens > total
   let inputTextTokens, outputTextTokens;
 
   if (hasInputDetails) {
     inputTextTokens = usage?.prompt_tokens_details?.text_tokens
       ?? usage?.input_token_details?.text_tokens
-      ?? (usage?.prompt_tokens ?? usage?.input_tokens ?? 0) - inputAudioTokens;
+      ?? Math.max(0, (usage?.prompt_tokens ?? usage?.input_tokens ?? 0) - inputAudioTokens);
   } else {
     inputTextTokens = usage?.prompt_tokens ?? usage?.input_tokens ?? 0;
   }
 
   if (hasOutputDetails) {
     outputTextTokens = usage?.completion_tokens_details?.text_tokens
-      ?? (usage?.completion_tokens ?? usage?.output_tokens ?? 0) - outputAudioTokens;
+      ?? Math.max(0, (usage?.completion_tokens ?? usage?.output_tokens ?? 0) - outputAudioTokens);
   } else {
     outputTextTokens = usage?.completion_tokens ?? usage?.output_tokens ?? 0;
   }
 
-  // If we have audio tokens or detailed breakdowns, use detailed pricing
-  const hasAudioDetails = inputAudioTokens > 0 || outputAudioTokens > 0 || hasInputDetails || hasOutputDetails;
+  // If we have token details (audio, reasoning, etc.), use detailed pricing
+  const hasTokenDetails = inputAudioTokens > 0 || outputAudioTokens > 0 || hasInputDetails || hasOutputDetails;
 
-  if (hasAudioDetails) {
+  if (hasTokenDetails) {
     return (
       (inputTextTokens * input + inputAudioTokens * audioInput
           + outputTextTokens * output + outputAudioTokens * audioOutput)
@@ -45,7 +46,7 @@ const tokenCost = (pricing, model, usage) => {
     );
   }
 
-  // Fallback to simple calculation for non-audio models
+  // Fallback to simple calculation for models without token details
   return (
     ((usage?.prompt_tokens ?? usage?.input_tokens ?? 0) * input
         + (usage?.completion_tokens ?? usage?.output_tokens ?? 0) * output)
