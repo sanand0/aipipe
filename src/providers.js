@@ -28,7 +28,7 @@ const tokenCost = (pricing, model, usage) => {
   if (hasAudioDetails) {
     return (
       (inputTextTokens * input + inputAudioTokens * audioInput
-        + outputTextTokens * output + outputAudioTokens * audioOutput)
+          + outputTextTokens * output + outputAudioTokens * audioOutput)
         / 1e6 || 0
     );
   }

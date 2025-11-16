@@ -212,7 +212,7 @@ describe("OpenRouter provider", () => {
       path: "/api/v1/chat/completions",
       method: "POST",
       events: [
-        'data: {"model":"openrouter/test-model","usage":{"prompt_tokens":500,"completion_tokens":200}}',
+        "data: {\"model\":\"openrouter/test-model\",\"usage\":{\"prompt_tokens\":500,\"completion_tokens\":200}}",
         "data: [DONE]",
       ],
       assertRequest: (opts) => {
