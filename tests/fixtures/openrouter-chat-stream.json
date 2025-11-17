@@ -2,18 +2,10 @@
   "description": "Streaming OpenRouter chat completion",
   "method": "POST",
   "path": "/openrouter/v1/chat/completions",
-  "headers": {
-    "Authorization": "Bearer {{token}}",
-    "Content-Type": "application/json"
-  },
+  "headers": { "Authorization": "Bearer {{token}}", "Content-Type": "application/json" },
   "body": {
     "model": "google/gemini-2.5-flash-lite",
-    "messages": [
-      {
-        "role": "user",
-        "content": "Stream a greeting"
-      }
-    ],
+    "messages": [{ "role": "user", "content": "Stream a greeting" }],
     "stream": true
   },
   "mock": [
@@ -23,9 +15,7 @@
       "method": "POST",
       "response": {
         "status": 200,
-        "headers": {
-          "content-type": "text/event-stream"
-        },
+        "headers": { "content-type": "text/event-stream" },
         "sse": [
           "data: {\"response\":{\"model\":\"google/gemini-2.5-flash-lite\",\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}}",
           "data: {\"response\":{\"model\":\"google/gemini-2.5-flash-lite\",\"usage\":{\"prompt_tokens\":15,\"completion_tokens\":10}}}",
@@ -36,9 +26,7 @@
   ],
   "response": {
     "status": 200,
-    "headers": {
-      "content-type": "text/event-stream"
-    },
+    "headers": { "content-type": "text/event-stream" },
     "sse": [
       "data: {\"response\":{\"model\":\"google/gemini-2.5-flash-lite\",\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}}",
       "data: {\"response\":{\"model\":\"google/gemini-2.5-flash-lite\",\"usage\":{\"prompt_tokens\":15,\"completion_tokens\":10}}}",

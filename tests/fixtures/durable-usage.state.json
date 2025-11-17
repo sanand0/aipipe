@@ -1,9 +1,4 @@
 {
-  "test@example.com": [
-    { "daysAgo": 1, "cost": 12.5 },
-    { "daysAgo": 0, "cost": 7.5 }
-  ],
-  "domain-user@example.com": [
-    { "daysAgo": 0, "cost": 5 }
-  ]
+  "test@example.com": [{ "daysAgo": 1, "cost": 12.5 }, { "daysAgo": 0, "cost": 7.5 }],
+  "domain-user@example.com": [{ "daysAgo": 0, "cost": 5 }]
 }

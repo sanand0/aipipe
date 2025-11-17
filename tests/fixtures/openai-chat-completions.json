@@ -2,72 +2,37 @@
   "description": "Chat completion request",
   "method": "POST",
   "path": "/openai/v1/chat/completions",
-  "headers": {
-    "Authorization": "Bearer {{token}}",
-    "Content-Type": "application/json"
-  },
-  "body": {
-    "model": "gpt-5-nano",
-    "messages": [
-      {
-        "role": "user",
-        "content": "Say hello"
-      }
-    ]
-  },
+  "headers": { "Authorization": "Bearer {{token}}", "Content-Type": "application/json" },
+  "body": { "model": "gpt-5-nano", "messages": [{ "role": "user", "content": "Say hello" }] },
   "mock": {
     "origin": "https://api.openai.com",
     "path": "/v1/chat/completions",
     "method": "POST",
     "response": {
       "status": 200,
-      "headers": {
-        "content-type": "application/json"
-      },
+      "headers": { "content-type": "application/json" },
       "body": {
         "id": "chatcmpl-test",
         "object": "chat.completion",
         "model": "gpt-5-nano",
         "choices": [
-          {
-            "index": 0,
-            "message": {
-              "role": "assistant",
-              "content": "Hello there!"
-            },
-            "finish_reason": "stop"
-          }
+          { "index": 0, "message": { "role": "assistant", "content": "Hello there!" }, "finish_reason": "stop" }
         ],
-        "usage": {
-          "prompt_tokens": 12,
-          "completion_tokens": 6
-        }
+        "usage": { "prompt_tokens": 12, "completion_tokens": 6 }
       }
     }
   },
   "response": {
     "status": 200,
-    "headers": {
-      "content-type": "application/json"
-    },
+    "headers": { "content-type": "application/json" },
     "body": {
       "id": "chatcmpl-test",
       "object": "chat.completion",
       "model": "gpt-5-nano",
       "choices": [
-        {
-          "index": 0,
-          "message": {
-            "role": "assistant",
-            "content": "Hello there!"
-          },
-          "finish_reason": "stop"
-        }
+        { "index": 0, "message": { "role": "assistant", "content": "Hello there!" }, "finish_reason": "stop" }
       ],
-      "usage": {
-        "prompt_tokens": 12,
-        "completion_tokens": 6
-      }
+      "usage": { "prompt_tokens": 12, "completion_tokens": 6 }
     }
   }
 }

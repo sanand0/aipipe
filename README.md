@@ -40,6 +40,43 @@ uvx llm 'Hello' -m gpt-4o-mini --key $AIPIPE_TOKEN
 
 This will print something like `Hello! How can I assist you today?`
 
+## Native Provider API Keys
+
+You can also use your own provider API keys directly (instead of an AI Pipe Token). This is useful if you want to:
+
+- Bypass AI Pipe's cost tracking and budget limits
+- Use models that aren't yet in AI Pipe's pricing database
+- Handle billing directly with the provider
+
+Simply use your native API key in the `Authorization` header:
+
+```bash
+# OpenAI with native key (starts with sk-)
+curl https://aipipe.org/openai/v1/chat/completions \
+  -H "Authorization: Bearer sk-your-openai-key" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "gpt-4o-mini", "messages": [{"role": "user", "content": "Hello"}]}'
+
+# OpenRouter with native key (starts with sk-or-)
+curl https://aipipe.org/openrouter/v1/chat/completions \
+  -H "Authorization: Bearer sk-or-your-openrouter-key" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "openai/gpt-4o-mini", "messages": [{"role": "user", "content": "Hello"}]}'
+
+# Gemini with native key (starts with AIza)
+curl https://aipipe.org/geminiv1beta/models/gemini-2.5-flash-lite:generateContent \
+  -H "Authorization: Bearer AIzaSyYourGeminiKey" \
+  -H "Content-Type: application/json" \
+  -d '{"contents":[{"parts":[{"text":"Hello"}]}]}'
+```
+
+Native keys are detected by their prefix pattern:
+
+- **OpenAI / OpenRouter**: Keys starting with `sk-`
+- **Google Gemini**: Keys starting with `AIza`
+
+**Note**: Native API keys cannot access `/usage` or `/admin` endpoints, which require an AI Pipe Token.
+
 ## Developer Guide
 
 Paste this code into `index.html`, open it in a browser, and check your [DevTools Console](https://developer.chrome.com/docs/devtools/console)
@@ -98,12 +135,7 @@ Response:
   "email": "user@example.com",
   "days": 7,
   "cost": 0.000137,
-  "usage": [
-    {
-      "date": "2025-04-16",
-      "cost": 0.000137
-    }
-  ],
+  "usage": [{ "date": "2025-04-16", "cost": 0.000137 }],
   "limit": 0.1
 }
 ```
@@ -120,9 +152,7 @@ Response:
 
 ```json
 {
-  "args": {
-    "x": "1"
-  },
+  "args": { "x": "1" },
   "headers": {
     "Accept": "*/*",
     "Host": "httpbin.org",
@@ -185,16 +215,7 @@ curl https://aipipe.org/openrouter/v1/chat/completions \
 Response contains:
 
 ```jsonc
-{
-  "choices": [
-    {
-      "message": {
-        "role": "assistant",
-        "content": "..."
-      }
-    }
-  ]
-}
+{ "choices": [{ "message": { "role": "assistant", "content": "..." } }] }
 ```
 
 #### OpenRouter Image Generation
@@ -274,13 +295,10 @@ Response contains:
 
 ```jsonc
 {
-  "output": [
-    {
-      "role": "assistant",
-      "content": [{ "text": "2 + 2 equals 4." }]
-      // ...
-    }
-  ]
+  "output": [{
+    "role": "assistant",
+    "content": [{ "text": "2 + 2 equals 4." }] // ...
+  }]
 }
 ```
 
@@ -302,18 +320,12 @@ Response contains:
     {
       "object": "embedding",
       "index": 0,
-      "embedding": [
-        0.010576399,
-        -0.037246477
-        // ...
+      "embedding": [0.010576399, -0.037246477 // ...
       ]
     }
   ],
   "model": "text-embedding-3-small",
-  "usage": {
-    "prompt_tokens": 8,
-    "total_tokens": 8
-  }
+  "usage": { "prompt_tokens": 8, "total_tokens": 8 }
 }
 ```
 
@@ -324,7 +336,7 @@ Response contains:
 **Example**: Make a [generateContent](https://ai.google.dev/gemini-api/docs) request
 
 ```bash
-curl https://aipipe.org/geminiv1beta/models/gemini-1.5-flash:generateContent \
+curl https://aipipe.org/geminiv1beta/models/gemini-2.5-flash-lite:generateContent \
   -H "x-goog-api-key: $AIPIPE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"contents":[{"parts":[{"text":"What is 2 + 2?"}]}]}'
@@ -334,12 +346,8 @@ Response contains:
 
 ```jsonc
 {
-  "candidates": [
-    {
-      "content": { "parts": [{ "text": "2 + 2 is 4." }] }
-    }
-  ],
-  "modelVersion": "gemini-1.5-flash",
+  "candidates": [{ "content": { "parts": [{ "text": "2 + 2 is 4." }] } }],
+  "modelVersion": "gemini-2.5-flash-lite",
   "usageMetadata": {
     "promptTokenCount": 8,
     "candidatesTokenCount": 8,
@@ -549,13 +557,7 @@ Response:
 
 ```jsonc
 {
-  "data": [
-    {
-      "email": "test@example.com",
-      "date": "2025-04-18",
-      "cost": 25.5
-    }
-    // ...
+  "data": [{ "email": "test@example.com", "date": "2025-04-18", "cost": 25.5 } // ...
   ]
 }
 ```
@@ -569,9 +571,7 @@ curl "https://aipipe.org/admin/token?email=user@example.com" -H "Authorization: 
 Response:
 
 ```json
-{
-  "token": "eyJhbGciOiJIUzI1NiI..."
-}
+{ "token": "eyJhbGciOiJIUzI1NiI..." }
 ```
 
 **`POST /admin/cost`**: Overwrite the cost usage for a user on a specific date. Only for admins.
@@ -586,9 +586,7 @@ curl https://aipipe.org/admin/cost \
 Response:
 
 ```json
-{
-  "message": "Cost for user@example.com on 2025-04-18 set to 1.23"
-}
+{ "message": "Cost for user@example.com on 2025-04-18 set to 1.23" }
 ```
 
 ## Architecture

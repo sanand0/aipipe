@@ -10,9 +10,7 @@
     "lint": "dprint fmt -c https://raw.githubusercontent.com/sanand0/scripts/refs/heads/main/dprint.jsonc && npx -y oxlint --fix",
     "prepublishOnly": "npm run lint"
   },
-  "prettier": {
-    "printWidth": 120
-  },
+  "prettier": { "printWidth": 120 },
   "type": "module",
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.9.13",
@@ -22,7 +20,5 @@
     "vitest": "^3.2.4",
     "wrangler": "^4.12.0"
   },
-  "dependencies": {
-    "jose": "^6.0.10"
-  }
+  "dependencies": { "jose": "^6.0.10" }
 }

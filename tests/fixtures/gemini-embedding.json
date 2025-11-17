@@ -2,59 +2,21 @@
   "description": "Gemini embedding",
   "method": "POST",
   "path": "/geminiv1beta/models/gemini-embedding-001:embedContent",
-  "headers": {
-    "Authorization": "Bearer {{token}}",
-    "Content-Type": "application/json"
-  },
-  "body": {
-    "model": "gemini-embedding-001",
-    "content": {
-      "parts": [
-        {
-          "text": "Embed this"
-        }
-      ]
-    }
-  },
+  "headers": { "Authorization": "Bearer {{token}}", "Content-Type": "application/json" },
+  "body": { "model": "gemini-embedding-001", "content": { "parts": [{ "text": "Embed this" }] } },
   "mock": {
     "origin": "https://generativelanguage.googleapis.com",
     "path": "/v1beta/models/gemini-embedding-001:embedContent",
     "method": "POST",
     "response": {
       "status": 200,
-      "headers": {
-        "content-type": "application/json"
-      },
-      "body": {
-        "embedding": {
-          "values": [
-            0.12,
-            -0.04,
-            0.33
-          ]
-        },
-        "usageMetadata": {
-          "promptTokenCount": 8
-        }
-      }
+      "headers": { "content-type": "application/json" },
+      "body": { "embedding": { "values": [0.12, -0.04, 0.33] }, "usageMetadata": { "promptTokenCount": 8 } }
     }
   },
   "response": {
     "status": 200,
-    "headers": {
-      "content-type": "application/json"
-    },
-    "body": {
-      "embedding": {
-        "values": [
-          0.12,
-          -0.04,
-          0.33
-        ]
-      },
-      "usageMetadata": {
-        "promptTokenCount": 8
-      }
-    }
+    "headers": { "content-type": "application/json" },
+    "body": { "embedding": { "values": [0.12, -0.04, 0.33] }, "usageMetadata": { "promptTokenCount": 8 } }
   }
 }

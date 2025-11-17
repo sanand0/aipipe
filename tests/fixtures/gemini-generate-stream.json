@@ -2,30 +2,15 @@
   "description": "Gemini streaming completion",
   "method": "POST",
   "path": "/geminiv1beta/models/gemini-2.5-flash-lite:streamGenerateContent?alt=sse",
-  "headers": {
-    "Authorization": "Bearer {{token}}",
-    "Content-Type": "application/json"
-  },
-  "body": {
-    "contents": [
-      {
-        "parts": [
-          {
-            "text": "Stream hi"
-          }
-        ]
-      }
-    ]
-  },
+  "headers": { "Authorization": "Bearer {{token}}", "Content-Type": "application/json" },
+  "body": { "contents": [{ "parts": [{ "text": "Stream hi" }] }] },
   "mock": {
     "origin": "https://generativelanguage.googleapis.com",
     "path": "/v1beta/models/gemini-2.5-flash-lite:streamGenerateContent?alt=sse",
     "method": "POST",
     "response": {
       "status": 200,
-      "headers": {
-        "content-type": "text/event-stream"
-      },
+      "headers": { "content-type": "text/event-stream" },
       "sse": [
         "data: {\"response\":{\"modelVersion\":\"gemini-2.5-flash-lite\",\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"}]}}]}}",
         "data: {\"response\":{\"modelVersion\":\"gemini-2.5-flash-lite\",\"usageMetadata\":{\"promptTokenCount\":12,\"candidatesTokenCount\":8}}}",
@@ -35,9 +20,7 @@
   },
   "response": {
     "status": 200,
-    "headers": {
-      "content-type": "text/event-stream"
-    },
+    "headers": { "content-type": "text/event-stream" },
     "sse": [
       "data: {\"response\":{\"modelVersion\":\"gemini-2.5-flash-lite\",\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"}]}}]}}",
       "data: {\"response\":{\"modelVersion\":\"gemini-2.5-flash-lite\",\"usageMetadata\":{\"promptTokenCount\":12,\"candidatesTokenCount\":8}}}",

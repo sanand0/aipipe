@@ -3,29 +3,18 @@
     "name": "generate-content",
     "request": "gemini-generate",
     "token": { "email": "test@example.com" },
-    "expect": {
-      "status": 200,
-      "body": { "responseFixture": "gemini-generate.json" },
-      "usageDelta": 0.0000034
-    }
+    "expect": { "status": 200, "body": { "responseFixture": "gemini-generate.json" }, "usageDelta": 0.0000034 }
   },
   {
     "name": "generate-content-stream",
     "request": "gemini-generate-stream",
     "token": { "email": "test@example.com" },
-    "expect": {
-      "status": 200,
-      "usageDelta": 0.0000044
-    }
+    "expect": { "status": 200, "usageDelta": 0.0000044 }
   },
   {
     "name": "embed-content",
     "request": "gemini-embedding",
     "token": { "email": "test@example.com" },
-    "expect": {
-      "status": 200,
-      "body": { "responseFixture": "gemini-embedding.json" },
-      "usageDelta": 0.0000012
-    }
+    "expect": { "status": 200, "body": { "responseFixture": "gemini-embedding.json" }, "usageDelta": 0.0000012 }
   }
 ]

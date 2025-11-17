@@ -6,13 +6,6 @@ import { replyJson, seedUsage, setupWorkerFetchMock, workerFetch } from "./test-
 const fetchMock = setupWorkerFetchMock();
 
 const toHeaders = (headers) => headers instanceof Headers ? headers : new Headers(headers ?? {});
-const parseBody = (body) => {
-  if (!body) return null;
-  if (typeof body === "string") return JSON.parse(body);
-  if (body instanceof Uint8Array) return JSON.parse(Buffer.from(body).toString());
-  if (body.type === "Buffer") return JSON.parse(Buffer.from(body.data).toString());
-  return JSON.parse(String(body));
-};
 
 describe("Native API key detection", () => {
   test("detects OpenAI native keys (sk-)", async () => {
@@ -154,7 +147,6 @@ describe("Native API key behavior", () => {
 
   test("skips model pricing validation for native keys", async () => {
     const nativeKey = "sk-test-unknown-model-allowed";
-    let capturedBody;
 
     replyJson(fetchMock, {
       origin: "https://api.openai.com",
@@ -164,9 +156,6 @@ describe("Native API key behavior", () => {
         model: "unknown-model-no-pricing",
         usage: { prompt_tokens: 10, completion_tokens: 5 },
         choices: [{ message: { role: "assistant", content: "ok" } }],
-      },
-      assertRequest: (opts) => {
-        capturedBody = opts.body;
       },
     });
 

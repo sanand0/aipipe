@@ -14,85 +14,40 @@
   {
     "name": "cors-requested-header",
     "request": "openrouter-options-custom",
-    "expect": {
-      "status": 200,
-      "headers": {
-        "access-control-allow-headers": "X-Custom-Header"
-      }
-    }
+    "expect": { "status": 200, "headers": { "access-control-allow-headers": "X-Custom-Header" } }
   },
   {
     "name": "authorization-required",
     "request": "openrouter-missing-auth",
-    "expect": {
-      "status": 401,
-      "body": {
-        "messageIncludes": "Missing Authorization"
-      }
-    }
+    "expect": { "status": 401, "body": { "messageIncludes": "Missing Authorization" } }
   },
   {
     "name": "invalid-jwt-token",
     "request": "openrouter-unauthorized",
-    "expect": {
-      "status": 401,
-      "body": {
-        "messageIncludes": "invalid"
-      }
-    }
+    "expect": { "status": 401, "body": { "messageIncludes": "invalid" } }
   },
   {
     "name": "valid-jwt-token",
     "request": "openrouter-success",
-    "token": {
-      "email": "test@example.com"
-    },
-    "expect": {
-      "status": 200,
-      "body": {
-        "responseFixture": "openrouter-success.json"
-      }
-    }
+    "token": { "email": "test@example.com" },
+    "expect": { "status": 200, "body": { "responseFixture": "openrouter-success.json" } }
   },
   {
     "name": "invalid-salt",
     "request": "openrouter-invalid-salt",
-    "token": {
-      "email": "user@example.com",
-      "useSalt": false
-    },
-    "expect": {
-      "status": 401,
-      "body": {
-        "messageIncludes": "no longer valid"
-      }
-    }
+    "token": { "email": "user@example.com", "useSalt": false },
+    "expect": { "status": 401, "body": { "messageIncludes": "no longer valid" } }
   },
   {
     "name": "valid-salt",
     "request": "openrouter-success",
-    "token": {
-      "email": "user@example.com",
-      "useSalt": true
-    },
-    "expect": {
-      "status": 200,
-      "body": {
-        "responseFixture": "openrouter-success.json"
-      }
-    }
+    "token": { "email": "user@example.com", "useSalt": true },
+    "expect": { "status": 200, "body": { "responseFixture": "openrouter-success.json" } }
   },
   {
     "name": "budget-limit-exceeded",
     "request": "openrouter-budget-blocked",
-    "token": {
-      "email": "blocked@example.com"
-    },
-    "expect": {
-      "status": 429,
-      "body": {
-        "messagePattern": "Usage \\$0(?:\\.0+)? / \\$0(?:\\.0+)? in 1 days"
-      }
-    }
+    "token": { "email": "blocked@example.com" },
+    "expect": { "status": 429, "body": { "messagePattern": "Usage \\$0(?:\\.0+)? / \\$0(?:\\.0+)? in 1 days" } }
   }
 ]

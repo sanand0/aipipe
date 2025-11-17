@@ -1,12 +1,6 @@
-[
-  {
-    "name": "similarity-basic",
-    "request": "similarity",
-    "token": { "email": "test@example.com" },
-    "expect": {
-      "status": 200,
-      "body": { "responseFixture": "similarity.json" },
-      "usageDelta": 0.00000016
-    }
-  }
-]
+[{
+  "name": "similarity-basic",
+  "request": "similarity",
+  "token": { "email": "test@example.com" },
+  "expect": { "status": 200, "body": { "responseFixture": "similarity.json" }, "usageDelta": 0.00000016 }
+}]
