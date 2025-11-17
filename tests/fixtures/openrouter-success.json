@@ -2,29 +2,19 @@
   "description": "Authorized request for OpenRouter models",
   "method": "GET",
   "path": "/openrouter/v1/models",
-  "headers": {
-    "Authorization": "Bearer {{token}}"
-  },
+  "headers": { "Authorization": "Bearer {{token}}" },
   "mock": {
     "origin": "https://openrouter.ai",
     "path": "/api/v1/models",
     "method": "GET",
     "response": {
       "status": 200,
-      "headers": {
-        "content-type": "application/json"
-      },
+      "headers": { "content-type": "application/json" },
       "body": {
         "data": [
           {
             "id": "google/gemini-2.5-flash-lite",
-            "pricing": {
-              "prompt": 0.00001,
-              "completion": 0.00002,
-              "request": 0,
-              "internal_reasoning": 0,
-              "image": 0
-            }
+            "pricing": { "prompt": 0.00001, "completion": 0.00002, "request": 0, "internal_reasoning": 0, "image": 0 }
           }
         ]
       }
@@ -32,20 +22,12 @@
   },
   "response": {
     "status": 200,
-    "headers": {
-      "content-type": "application/json"
-    },
+    "headers": { "content-type": "application/json" },
     "body": {
       "data": [
         {
           "id": "google/gemini-2.5-flash-lite",
-          "pricing": {
-            "prompt": 0.00001,
-            "completion": 0.00002,
-            "request": 0,
-            "internal_reasoning": 0,
-            "image": 0
-          }
+          "pricing": { "prompt": 0.00001, "completion": 0.00002, "request": 0, "internal_reasoning": 0, "image": 0 }
         }
       ]
     }

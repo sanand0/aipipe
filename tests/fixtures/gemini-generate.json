@@ -2,71 +2,27 @@
   "description": "Gemini text completion",
   "method": "POST",
   "path": "/geminiv1beta/models/gemini-2.5-flash-lite:generateContent",
-  "headers": {
-    "Authorization": "Bearer {{token}}",
-    "Content-Type": "application/json"
-  },
-  "body": {
-    "model": "gemini-2.5-flash-lite",
-    "contents": [
-      {
-        "parts": [
-          {
-            "text": "Say hi"
-          }
-        ]
-      }
-    ]
-  },
+  "headers": { "Authorization": "Bearer {{token}}", "Content-Type": "application/json" },
+  "body": { "model": "gemini-2.5-flash-lite", "contents": [{ "parts": [{ "text": "Say hi" }] }] },
   "mock": {
     "origin": "https://generativelanguage.googleapis.com",
     "path": "/v1beta/models/gemini-2.5-flash-lite:generateContent",
     "method": "POST",
     "response": {
       "status": 200,
-      "headers": {
-        "content-type": "application/json"
-      },
+      "headers": { "content-type": "application/json" },
       "body": {
-        "candidates": [
-          {
-            "content": {
-              "parts": [
-                {
-                  "text": "Hello from Gemini"
-                }
-              ]
-            }
-          }
-        ],
-        "usageMetadata": {
-          "promptTokenCount": 10,
-          "candidatesTokenCount": 6
-        }
+        "candidates": [{ "content": { "parts": [{ "text": "Hello from Gemini" }] } }],
+        "usageMetadata": { "promptTokenCount": 10, "candidatesTokenCount": 6 }
       }
     }
   },
   "response": {
     "status": 200,
-    "headers": {
-      "content-type": "application/json"
-    },
+    "headers": { "content-type": "application/json" },
     "body": {
-      "candidates": [
-        {
-          "content": {
-            "parts": [
-              {
-                "text": "Hello from Gemini"
-              }
-            ]
-          }
-        }
-      ],
-      "usageMetadata": {
-        "promptTokenCount": 10,
-        "candidatesTokenCount": 6
-      }
+      "candidates": [{ "content": { "parts": [{ "text": "Hello from Gemini" }] } }],
+      "usageMetadata": { "promptTokenCount": 10, "candidatesTokenCount": 6 }
     }
   }
 }

@@ -2,7 +2,5 @@
   "description": "GET with token minted without configured salt",
   "method": "GET",
   "path": "/openrouter/v1/models",
-  "headers": {
-    "Authorization": "Bearer {{token}}"
-  }
+  "headers": { "Authorization": "Bearer {{token}}" }
 }

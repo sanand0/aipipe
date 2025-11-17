@@ -2,7 +2,5 @@
   "description": "Preflight request that asks for specific headers",
   "method": "OPTIONS",
   "path": "/openrouter/v1/models",
-  "headers": {
-    "Access-Control-Request-Headers": "X-Custom-Header"
-  }
+  "headers": { "Access-Control-Request-Headers": "X-Custom-Header" }
 }

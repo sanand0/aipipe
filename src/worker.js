@@ -15,6 +15,16 @@ const { budget, salt } = config;
 const SKIP_REQUEST_HEADERS = [/^content-length$/i, /^host$/i, /^cf-.*$/i, /^connection$/i, /^accept-encoding$/i];
 const SKIP_RESPONSE_HEADERS = [/^transfer-encoding$/i, /^connection$/i, /^content-security-policy$/i];
 
+// Detect if token is a native provider API key (not an AIPipe JWT)
+// Native keys bypass AIPipe's JWT validation, budget checks, and cost tracking
+function isNativeApiKey(token) {
+  // OpenAI and OpenRouter keys start with sk-
+  if (token.startsWith("sk-")) return true;
+  // Google/Gemini API keys typically start with AIza
+  if (token.startsWith("AIza")) return true;
+  return false;
+}
+
 export default {
   async fetch(request, env) {
     const jsonResponse = (obj) => _jsonResponse(obj, request);
@@ -52,57 +62,78 @@ export default {
       || "";
     if (!token) return jsonResponse({ code: 401, message: "Missing Authorization: Bearer token" });
 
-    // Token must contain a valid JWT payload
-    const payload = await validateToken(token, env.AIPIPE_SECRET);
-    if (payload.error) return jsonResponse({ code: 401, message: payload.error });
+    // Check if this is a native provider API key (bypasses AIPipe JWT validation and cost tracking)
+    const nativeKey = isNativeApiKey(token);
 
-    // Get the email and domain
-    const email = payload.email;
-    const domain = "@" + email.split("@").at(-1);
-    // Get user's budget limit and time period based on email || domain || default (*) || zero limit
-    const { limit, days } = budget[payload.email] ?? budget[domain] ?? budget["*"] ?? { limit: 0, days: 1 };
+    let email, aiPipeCost;
 
-    // Get the SQLite database with cost data
-    const aiPipeCostId = env.AIPIPE_COST.idFromName("default");
-    const aiPipeCost = env.AIPIPE_COST.get(aiPipeCostId);
-
-    // If usage data was requested, share usage and limit data
-    if (provider == "usage") return jsonResponse({ code: 200, ...(await aiPipeCost.usage(email, days)), limit });
-
-    // Handle admin endpoints
-    if (provider == "admin") {
-      const admins = (env.ADMIN_EMAILS || "").split(/[,\s]+/);
-      if (!admins.includes(payload.email)) return jsonResponse({ code: 403, message: "Admin access required" });
-
-      const action = url.pathname.split("/")[2];
-      if (action == "usage") return jsonResponse({ code: 200, data: await aiPipeCost.allUsage() });
-      if (action == "token") {
-        const email = url.searchParams.get("email") ?? payload.email;
-        const token = await createToken(email, env.AIPIPE_SECRET, salt[email] ? { salt: salt[email] } : {});
-        return jsonResponse({ code: 200, token });
+    if (nativeKey) {
+      // Native API keys bypass JWT validation and budget checks
+      // They also cannot access usage or admin endpoints
+      if (provider == "usage") {
+        return jsonResponse({ code: 401, message: "Usage endpoint requires AIPipe JWT token, not native API key" });
       }
-      if (action == "cost") {
-        if (request.method !== "POST") return jsonResponse({ code: 405, message: "Use POST /admin/cost" });
-        const { email, date, cost } = await request.json();
-        await aiPipeCost.setCost(email, date, cost);
-        return jsonResponse({ code: 200, message: `Cost for ${email} on ${date} set to ${cost}` });
+      if (provider == "admin") {
+        return jsonResponse({ code: 401, message: "Admin endpoint requires AIPipe JWT token, not native API key" });
       }
-      return jsonResponse({ code: 404, message: "Unknown admin action" });
+    } else {
+      // Token must contain a valid JWT payload
+      const payload = await validateToken(token, env.AIPIPE_SECRET);
+      if (payload.error) return jsonResponse({ code: 401, message: payload.error });
+
+      // Get the email and domain
+      email = payload.email;
+      const domain = "@" + email.split("@").at(-1);
+      // Get user's budget limit and time period based on email || domain || default (*) || zero limit
+      const { limit, days } = budget[payload.email] ?? budget[domain] ?? budget["*"] ?? { limit: 0, days: 1 };
+
+      // Get the SQLite database with cost data
+      const aiPipeCostId = env.AIPIPE_COST.idFromName("default");
+      aiPipeCost = env.AIPIPE_COST.get(aiPipeCostId);
+
+      // If usage data was requested, share usage and limit data
+      if (provider == "usage") return jsonResponse({ code: 200, ...(await aiPipeCost.usage(email, days)), limit });
+
+      // Handle admin endpoints
+      if (provider == "admin") {
+        const admins = (env.ADMIN_EMAILS || "").split(/[,\s]+/);
+        if (!admins.includes(payload.email)) return jsonResponse({ code: 403, message: "Admin access required" });
+
+        const action = url.pathname.split("/")[2];
+        if (action == "usage") return jsonResponse({ code: 200, data: await aiPipeCost.allUsage() });
+        if (action == "token") {
+          const email = url.searchParams.get("email") ?? payload.email;
+          const token = await createToken(email, env.AIPIPE_SECRET, salt[email] ? { salt: salt[email] } : {});
+          return jsonResponse({ code: 200, token });
+        }
+        if (action == "cost") {
+          if (request.method !== "POST") return jsonResponse({ code: 405, message: "Use POST /admin/cost" });
+          const { email, date, cost } = await request.json();
+          await aiPipeCost.setCost(email, date, cost);
+          return jsonResponse({ code: 200, message: `Cost for ${email} on ${date} set to ${cost}` });
+        }
+        return jsonResponse({ code: 404, message: "Unknown admin action" });
+      }
+
+      // Reject if user's cost usage is at limit
+      const usage = await aiPipeCost.cost(email, days);
+      if (usage >= limit) return jsonResponse({ code: 429, message: `Usage $${usage} / $${limit} in ${days} days` });
     }
-
-    // Reject if user's cost usage is at limit
-    const usage = await aiPipeCost.cost(email, days);
-    if (usage >= limit) return jsonResponse({ code: 429, message: `Usage $${usage} / $${limit} in ${days} days` });
 
     // Allow providers to transform or reject
     const path = url.pathname.slice(provider.length + 1) + url.search;
-    const { url: targetUrl, headers, error, ...params } = await providers[provider].transform({ path, request, env });
+    const { url: targetUrl, headers, error, ...params } = await providers[provider].transform({
+      path,
+      request,
+      env,
+      nativeKey: nativeKey ? token : null,
+    });
     if (error) return jsonResponse(error);
 
     // For similarity provider, return the result directly
     if (provider === "similarity" && params.similarity) {
       const { cost } = await providers[provider].cost({ model: params.model, usage: params.usage });
-      if (cost > 0) await aiPipeCost.add(email, cost);
+      if (cost > 0 && !nativeKey) await aiPipeCost.add(email, cost);
       return jsonResponse({ code: 200, ...params });
     }
     // Make the actual request
@@ -113,12 +144,15 @@ export default {
     });
 
     // addCost() is called by each SSE event or the final response. Adds to total cost
+    // For native keys, we skip cost tracking
     const parse = providers[provider].parse;
-    const addCost = async (data) => {
-      const parsed = parse ? parse(data) : data;
-      const { cost } = await providers[provider].cost({ ...parsed, env, path, body: params.body });
-      if (cost > 0) await aiPipeCost.add(email, cost);
-    };
+    const addCost = nativeKey
+      ? async () => {} // No-op for native keys
+      : async (data) => {
+        const parsed = parse ? parse(data) : data;
+        const { cost } = await providers[provider].cost({ ...parsed, env, path, body: params.body });
+        if (cost > 0) await aiPipeCost.add(email, cost);
+      };
 
     // For JSON response, extract { model, usage } and add cost based on that
     const contentType = response.headers.get("content-type") || "";

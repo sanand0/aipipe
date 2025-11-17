@@ -110,9 +110,7 @@ test/
     "request": {
       "method": "GET",
       "path": "/openrouter/v1/models",
-      "headers": {
-        "Authorization": "Bearer {{token}}"
-      },
+      "headers": { "Authorization": "Bearer {{token}}" },
       "body": null
     },
     "env": {
@@ -126,9 +124,7 @@ test/
   ```json
   {
     "status": 200,
-    "headers": {
-      "Content-Type": "application/json"
-    },
+    "headers": { "Content-Type": "application/json" },
     "body": {
       "data": [
         {
@@ -141,13 +137,7 @@ test/
   ```
 - **Durable Object seed** (`test/fixtures/states/durable-usage.json`):
   ```json
-  {
-    "emails": {
-      "test@example.com": {
-        "2025-01-01": 25.0
-      }
-    }
-  }
+  { "emails": { "test@example.com": { "2025-01-01": 25.0 } } }
   ```
 
 ### Helper Utilities

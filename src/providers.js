@@ -64,13 +64,19 @@ const parseUsage = (u) =>
 
 export const providers = {
   openrouter: {
-    transform: async ({ path, request, env }) => ({
+    transform: async ({ path, request, env, nativeKey }) => ({
       url: `https://openrouter.ai/api${path}`,
-      headers: updateHeaders(request.headers, [], {
-        Authorization: `Bearer ${env["OPENROUTER_API_KEY"]}`,
-        "HTTP-Referer": "https://aipipe.org/",
-        "X-Title": "AIPipe",
-      }),
+      headers: updateHeaders(
+        request.headers,
+        [],
+        nativeKey
+          ? { Authorization: `Bearer ${nativeKey}` }
+          : {
+            Authorization: `Bearer ${env["OPENROUTER_API_KEY"]}`,
+            "HTTP-Referer": "https://aipipe.org/",
+            "X-Title": "AIPipe",
+          },
+      ),
       ...(request.method == "POST" ? { body: await request.arrayBuffer() } : {}),
     }),
     cost: async ({ model, usage }) => {
@@ -91,15 +97,18 @@ export const providers = {
   },
 
   openai: {
-    transform: async ({ path, request, env }) => {
+    transform: async ({ path, request, env, nativeKey }) => {
       let body;
       if (request.method == "POST") {
-        // For chat POSTs, get { model }. Reject if model pricing unknown
+        // For chat POSTs, get { model }. Reject if model pricing unknown (unless using native key)
         if (!request.headers.get("Content-Type")?.includes("application/json")) {
           return { error: { code: 400, message: "Pass a JSON body with {model} so we can calculate cost" } };
         }
         const json = await request.json();
-        if (!openaiCost[json.model]) return { error: { code: 400, message: `Model ${json.model} pricing unknown` } };
+        // Skip pricing validation for native keys (user handles their own costs)
+        if (!nativeKey && !openaiCost[json.model]) {
+          return { error: { code: 400, message: `Model ${json.model} pricing unknown` } };
+        }
 
         // If streaming chat completion, request usage in the response
         if (json.stream && path.includes("chat/completions")) json.stream_options = { include_usage: true };
@@ -107,7 +116,9 @@ export const providers = {
       }
       return {
         url: `https://api.openai.com${path}`,
-        headers: updateHeaders(request.headers, [], { Authorization: `Bearer ${env["OPENAI_API_KEY"]}` }),
+        headers: updateHeaders(request.headers, [], {
+          Authorization: `Bearer ${nativeKey ?? env["OPENAI_API_KEY"]}`,
+        }),
         ...(body ? { body } : {}),
       };
     },
@@ -118,18 +129,23 @@ export const providers = {
   },
 
   geminiv1beta: {
-    transform: async ({ path, request, env }) => {
+    transform: async ({ path, request, env, nativeKey }) => {
       let json, model;
       if (request.method == "POST" && request.headers.get("Content-Type")?.includes("application/json")) {
-        // For chat POSTs, get { model }. Reject if model pricing unknown
+        // For chat POSTs, get { model }. Reject if model pricing unknown (unless using native key)
         json = await request.json();
         model = json.model ?? path.match(/models\/([^:]+)/)?.[1];
-        if (model && !geminiCost[model]) return { error: { code: 400, message: `Model ${model} pricing unknown` } };
+        // Skip pricing validation for native keys (user handles their own costs)
+        if (!nativeKey && model && !geminiCost[model]) {
+          return { error: { code: 400, message: `Model ${model} pricing unknown` } };
+        }
       }
       // If OK, rewrite Authorization header
       return {
         url: `https://generativelanguage.googleapis.com/v1beta${path}`,
-        headers: updateHeaders(request.headers, [/^authorization$/i], { "x-goog-api-key": env["GEMINI_API_KEY"] }),
+        headers: updateHeaders(request.headers, [/^authorization$/i], {
+          "x-goog-api-key": nativeKey ?? env["GEMINI_API_KEY"],
+        }),
         ...(json ? { body: JSON.stringify(json) } : {}),
       };
     },
@@ -157,7 +173,7 @@ export const providers = {
   },
 
   similarity: {
-    transform: async ({ request, env }) => {
+    transform: async ({ request, env, nativeKey }) => {
       try {
         // Error handling common
         const { docs, topics, model = "text-embedding-3-small", precision = 5 } = await request.json();
@@ -177,8 +193,8 @@ export const providers = {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${env["OPENAI_API_KEY"]}`,
-            ...(env["OPENAI_ORG_ID"] && { "OpenAI-Organization": env["OPENAI_ORG_ID"] }),
+            Authorization: `Bearer ${nativeKey ?? env["OPENAI_API_KEY"]}`,
+            ...(!nativeKey && env["OPENAI_ORG_ID"] && { "OpenAI-Organization": env["OPENAI_ORG_ID"] }),
           },
           body: JSON.stringify({ model, input: [...processedDocs, ...targetDocs] }),
         });

@@ -2,21 +2,8 @@
   "description": "Similarity endpoint invoking OpenAI embeddings",
   "method": "POST",
   "path": "/similarity",
-  "headers": {
-    "Authorization": "Bearer {{token}}",
-    "Content-Type": "application/json"
-  },
-  "body": {
-    "docs": [
-      "fox",
-      "dog"
-    ],
-    "topics": [
-      "fox",
-      "dog"
-    ],
-    "model": "text-embedding-3-small"
-  },
+  "headers": { "Authorization": "Bearer {{token}}", "Content-Type": "application/json" },
+  "body": { "docs": ["fox", "dog"], "topics": ["fox", "dog"], "model": "text-embedding-3-small" },
   "mock": {
     "origin": "https://api.openai.com",
     "path": "/v1/embeddings",
@@ -25,24 +12,7 @@
   },
   "response": {
     "status": 200,
-    "headers": {
-      "content-type": "application/json"
-    },
-    "body": {
-      "model": "text-embedding-3-small",
-      "similarity": [
-        [
-          1,
-          0
-        ],
-        [
-          0,
-          1
-        ]
-      ],
-      "usage": {
-        "prompt_tokens": 8
-      }
-    }
+    "headers": { "content-type": "application/json" },
+    "body": { "model": "text-embedding-3-small", "similarity": [[1, 0], [0, 1]], "usage": { "prompt_tokens": 8 } }
   }
 }

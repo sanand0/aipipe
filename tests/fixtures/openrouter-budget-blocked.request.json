@@ -2,7 +2,5 @@
   "description": "Blocked user hitting models endpoint",
   "method": "GET",
   "path": "/openrouter/v1/models",
-  "headers": {
-    "Authorization": "Bearer {{token}}"
-  }
+  "headers": { "Authorization": "Bearer {{token}}" }
 }

@@ -2,13 +2,6 @@
   "description": "OpenRouter request with invalid bearer token",
   "method": "GET",
   "path": "/openrouter/v1/models",
-  "headers": {
-    "Authorization": "Bearer invalid-token"
-  },
-  "response": {
-    "status": 401,
-    "body": {
-      "messageIncludes": "invalid"
-    }
-  }
+  "headers": { "Authorization": "Bearer invalid-token" },
+  "response": { "status": 401, "body": { "messageIncludes": "invalid" } }
 }
