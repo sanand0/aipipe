@@ -29,13 +29,13 @@ export OPENAI_BASE_URL=https://aipipe.org/openai/v1
 Now you can run:
 
 ```bash
-uvx openai api chat.completions.create -m gpt-4.1-nano -g user "Hello"
+uvx openai api chat.completions.create -m gpt-5-nano -g user "Hello"
 ```
 
 ... or:
 
 ```bash
-uvx llm 'Hello' -m gpt-4o-mini --key $AIPIPE_TOKEN
+uvx llm 'Hello' -m gpt-5-nano --key $AIPIPE_TOKEN
 ```
 
 This will print something like `Hello! How can I assist you today?`
@@ -55,13 +55,13 @@ Simply use your native API key in the `Authorization` header:
 curl https://aipipe.org/openai/v1/chat/completions \
   -H "Authorization: Bearer sk-your-openai-key" \
   -H "Content-Type: application/json" \
-  -d '{"model": "gpt-4o-mini", "messages": [{"role": "user", "content": "Hello"}]}'
+  -d '{"model": "gpt-5-nano", "messages": [{"role": "user", "content": "Hello"}]}'
 
 # OpenRouter with native key (starts with sk-or-)
 curl https://aipipe.org/openrouter/v1/chat/completions \
   -H "Authorization: Bearer sk-or-your-openrouter-key" \
   -H "Content-Type: application/json" \
-  -d '{"model": "openai/gpt-4o-mini", "messages": [{"role": "user", "content": "Hello"}]}'
+  -d '{"model": "openai/gpt-5-nano", "messages": [{"role": "user", "content": "Hello"}]}'
 
 # Gemini with native key (starts with AIza)
 curl https://aipipe.org/geminiv1beta/models/gemini-2.5-flash-lite:generateContent \
@@ -92,7 +92,7 @@ Paste this code into `index.html`, open it in a browser, and check your [DevTool
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "openai/gpt-4o-mini",
+      model: "openai/gpt-5-nano",
       messages: [{ role: "user", content: "What is 2 + 2?" }],
     }),
   }).then((r) => r.json());
@@ -288,7 +288,7 @@ Response contains:
 curl https://aipipe.org/openai/v1/responses \
   -H "Authorization: Bearer $AIPIPE_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"model": "gpt-4.1-nano", "input": "What is 2 + 2?" }'
+  -d '{"model": "gpt-5-nano", "input": "What is 2 + 2?" }'
 ```
 
 Response contains:
