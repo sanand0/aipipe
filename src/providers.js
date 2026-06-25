@@ -185,9 +185,17 @@ export const providers = {
         ...(body ? { body } : {}),
       };
     },
-    cost: async ({ model, usage }) => ({ cost: tokenCost(openaiCost, model, usage) }),
+    cost: async ({ model, usage, body }) => {
+      let reqModel;
+      try {
+        if (body) reqModel = JSON.parse(body).model;
+      } catch {}
+      const resolvedModel = (model && openaiCost[model]) ? model : (reqModel && openaiCost[reqModel] ? reqModel : model);
+      return { cost: tokenCost(openaiCost, resolvedModel, usage) };
+    },
     parse: (event) => {
-      return { ...(event.response ?? event) };
+      event = event.response ?? event;
+      return { ...event, usage: parseUsage(event.usage) };
     },
   },
 
@@ -214,7 +222,13 @@ export const providers = {
     },
     cost: async ({ model, usage, env, path, body }) => {
       model = model ?? path.match(/models\/([^:]+)/)?.[1];
-      if (!geminiCost[model]) return { cost: 0 };
+      let reqModel;
+      try {
+        if (body) reqModel = JSON.parse(body).model;
+      } catch {}
+      reqModel = reqModel ?? path.match(/models\/([^:]+)/)?.[1];
+      const resolvedModel = (model && geminiCost[model]) ? model : (reqModel && geminiCost[reqModel] ? reqModel : model);
+      if (!geminiCost[resolvedModel]) return { cost: 0 };
       if (!usage && path.includes(":embedContent") && body) {
         try {
           const { content } = JSON.parse(body);
@@ -226,7 +240,7 @@ export const providers = {
           if (res.ok) usage = { prompt_tokens: (await res.json()).totalTokens };
         } catch {}
       }
-      return { cost: tokenCost(geminiCost, model, usage) };
+      return { cost: tokenCost(geminiCost, resolvedModel, usage) };
     },
     parse: (event) => {
       event = event.response ?? event;

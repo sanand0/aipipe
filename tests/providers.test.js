@@ -309,6 +309,49 @@ describe("OpenAI provider", () => {
     // = (12.5 + 500 + 150 + 1000) / 1e6 = 1662.5 / 1e6 = 0.0016625
     expect(usage.cost).toBeCloseTo(0.0016625, 6);
   });
+
+  test("streams chat completions and accrues cost", async () => {
+    const token = await createTestToken();
+    await seedUsage({});
+    let capturedBody;
+
+    replyStream(fetchMock, {
+      origin: "https://api.openai.com",
+      path: "/v1/chat/completions",
+      method: "POST",
+      events: [
+        'data: {"id":"chatcmpl-test","object":"chat.completion.chunk","model":"gpt-5.4-nano-2026-03-17","choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}',
+        'data: {"id":"chatcmpl-test","object":"chat.completion.chunk","model":"gpt-5.4-nano-2026-03-17","choices":[],"usage":{"prompt_tokens":1000,"completion_tokens":400}}',
+        "data: [DONE]",
+      ],
+      assertRequest: (opts) => {
+        const headers = toHeaders(opts.headers);
+        expect(headers.get("authorization")).toBe(`Bearer ${env.OPENAI_API_KEY}`);
+        capturedBody = opts.body;
+      },
+    });
+
+    const response = await workerFetch("/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-5.4-nano",
+        stream: true,
+        messages: [{ role: "user", content: "hi" }],
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    await response.text();
+    const forwardedPayload = parseBody(capturedBody);
+    expect(forwardedPayload.stream_options).toEqual({ include_usage: true });
+
+    const usage = await readUsage(token);
+    expect(usage.cost).toBeCloseTo(0.0007, 6);
+  });
 });
 
 describe("OpenRouter provider", () => {
