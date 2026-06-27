@@ -194,7 +194,11 @@ export const providers = {
           if (reqModel && openaiCost[reqModel]) {
             model = reqModel;
           }
-        } catch {}
+        } catch (err) {
+          if (!(err instanceof SyntaxError)) {
+            throw err;
+          }
+        }
       }
       return { cost: tokenCost(openaiCost, model, usage) };
     },
@@ -235,7 +239,11 @@ export const providers = {
         if (body) {
           try {
             reqModel = JSON.parse(body).model;
-          } catch {}
+          } catch (err) {
+            if (!(err instanceof SyntaxError)) {
+              throw err;
+            }
+          }
         }
         // If the request body doesn't have a model, try to extract it from the request path
         reqModel = reqModel ?? path.match(/models\/([^:]+)/)?.[1];
