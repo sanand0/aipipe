@@ -5,11 +5,13 @@ import pricing from "../src/pricing.json";
 import { providers } from "../src/providers.js";
 import {
   createTestToken,
+  getBudgetForEmail,
   readUsage,
   replyJson,
   replyStream,
   seedUsage,
   setupWorkerFetchMock,
+  TEST_EMAIL,
   workerFetch,
 } from "./test-helpers.js";
 
@@ -54,6 +56,111 @@ describe("OpenAI provider", () => {
     expect(response.status).toBe(400);
     const body = await response.json();
     expect(body.message).toContain("pricing unknown");
+  });
+
+  // The output ceiling a caller declares is priced in dollars and compared against what is left of
+  // their budget. Figures are derived from pricing.json and config.example.js rather than hardcoded,
+  // so these tests fail loudly if either changes rather than silently testing the wrong number.
+  const BUDGET_MODEL = "gpt-5.5";
+  const [, BUDGET_OUTPUT_PRICE] = pricing.openai[BUDGET_MODEL];
+  const outputCostOf = (tokens) => (tokens * BUDGET_OUTPUT_PRICE) / 1e6;
+
+  // Seed usage so the caller has `remaining` dollars left, and return that figure computed the same
+  // way the worker computes it (limit - usage), so the formatted amount can be asserted exactly.
+  const seedRemainingBudget = async (remaining) => {
+    const { limit } = getBudgetForEmail(TEST_EMAIL);
+    const used = limit - remaining;
+    await seedUsage({ [TEST_EMAIL]: { [new Date().toISOString().slice(0, 10)]: used } });
+    return limit - used;
+  };
+
+  const chatPath = "/openai/v1/chat/completions";
+  const chatBody = { messages: [{ role: "user", content: "Hello" }] };
+
+  const postJson = (path, token, payload) =>
+    workerFetch(path, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+  const mockOpenAIChat = () =>
+    replyJson(fetchMock, {
+      origin: "https://api.openai.com",
+      path: "/v1/chat/completions",
+      method: "POST",
+      body: {
+        model: BUDGET_MODEL,
+        usage: { prompt_tokens: 10, completion_tokens: 5 },
+        choices: [{ message: { role: "assistant", content: "hi" } }],
+      },
+    });
+
+  test.each([
+    ["max_tokens", chatPath, chatBody],
+    ["max_completion_tokens", chatPath, chatBody],
+    ["max_output_tokens", "/openai/v1/responses", { input: "Hello" }],
+  ])("rejects a request whose %s can exceed the remaining budget", async (limitField, path, body) => {
+    const token = await createTestToken();
+    const maxTokens = 1000;
+    const outputCost = outputCostOf(maxTokens);
+    // Leave a third of the ceiling's cost, so the ceiling clearly exceeds it
+    const remaining = await seedRemainingBudget(outputCost / 3);
+
+    const response = await postJson(path, token, { model: BUDGET_MODEL, [limitField]: maxTokens, ...body });
+
+    expect(response.status).toBe(429);
+    const result = await response.json();
+    expect(result.message).toContain(`Maximum output cost $${outputCost.toFixed(6)}`);
+    expect(result.message).toContain(`remaining budget $${remaining.toFixed(6)}`);
+  });
+
+  test("allows a request whose declared ceiling fits the remaining budget", async () => {
+    const token = await createTestToken();
+    const maxTokens = 100;
+    // Triple the ceiling's cost is left, so the request is affordable
+    await seedRemainingBudget(outputCostOf(maxTokens) * 3);
+    mockOpenAIChat();
+
+    const response = await postJson(chatPath, token, {
+      model: BUDGET_MODEL,
+      max_completion_tokens: maxTokens,
+      ...chatBody,
+    });
+
+    expect(response.status).toBe(200);
+  });
+
+  test("skips the ceiling check when the request declares no output limit", async () => {
+    const token = await createTestToken();
+    // Far less budget than an unbounded request could spend. The pre-check has no ceiling to price,
+    // so the request proceeds and is only charged after the fact. Documents a known gap: callers
+    // that omit an output limit are not pre-checked at all.
+    await seedRemainingBudget(outputCostOf(1));
+    mockOpenAIChat();
+
+    const response = await postJson(chatPath, token, { model: BUDGET_MODEL, ...chatBody });
+
+    expect(response.status).toBe(200);
+  });
+
+  test("coerces a string output limit before comparing against the budget", async () => {
+    const token = await createTestToken();
+    const maxTokens = 1000;
+    await seedRemainingBudget(outputCostOf(maxTokens) / 3);
+
+    const response = await postJson(chatPath, token, {
+      model: BUDGET_MODEL,
+      max_tokens: String(maxTokens),
+      ...chatBody,
+    });
+
+    expect(response.status).toBe(429);
+    const result = await response.json();
+    expect(result.message).toContain(`Maximum output cost $${outputCostOf(maxTokens).toFixed(6)}`);
   });
 
   test("proxies chat completions, augments stream options, and accrues usage", async () => {
