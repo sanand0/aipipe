@@ -67,8 +67,8 @@ async function init() {
 
   if (redirect) {
     const url = new URL(redirect, window.location.origin);
-    // Restrict to same-origin redirects
-    if (url.origin !== window.location.origin) return;
+    // Restrict redirects to trusted origins
+    if (url.origin !== window.location.origin && url.origin !== "https://sanand0.github.io") return;
     url.searchParams.append("aipipe_token", token);
     url.searchParams.append("aipipe_email", email);
     window.location.href = url.toString();
