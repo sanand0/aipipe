@@ -69,6 +69,17 @@ const tokenCost = (pricing, model, usage, requestedModel) => {
   );
 };
 
+// Upper bound on a request's output cost, from the ceiling the caller declared.
+// Returns null when there is no usable ceiling (absent, non-numeric, negative, or unpriced model):
+// the request is then unbounded and this pre-check cannot apply. OpenAI rejects invalid values itself.
+const openaiMaxOutputCost = (model, json) => {
+  const limit = json.max_output_tokens ?? json.max_completion_tokens ?? json.max_tokens;
+  const maximumTokens = typeof limit == "number" ? limit : typeof limit == "string" ? Number(limit) : NaN;
+  const [, outputPrice] = openaiCost[model] ?? [];
+  if (!Number.isFinite(maximumTokens) || maximumTokens < 0 || !Number.isFinite(outputPrice)) return null;
+  return (maximumTokens * outputPrice) / 1e6;
+};
+
 const parseUsage = (u) =>
   u
     ? {
@@ -160,7 +171,7 @@ export const providers = {
   },
 
   openai: {
-    transform: async ({ path, request, env, nativeKey, email }) => {
+    transform: async ({ path, request, env, nativeKey, email, budget }) => {
       let body;
       if (request.method == "POST") {
         // For chat POSTs, get { model }. Reject if model pricing unknown (unless using native key)
@@ -171,6 +182,18 @@ export const providers = {
         // Skip pricing validation for native keys (user handles their own costs)
         if (!nativeKey && !openaiCost[json.model]) {
           return { error: { code: 400, message: `Model ${json.model} pricing unknown` } };
+        }
+        // budget is null for native keys, so this only applies to AIPipe-metered requests
+        const outputCost = openaiMaxOutputCost(json.model, json);
+        if (budget && outputCost !== null && outputCost > budget.remaining) {
+          return {
+            error: {
+              code: 429,
+              message: `Maximum output cost $${outputCost.toFixed(6)} exceeds remaining budget $${
+                budget.remaining.toFixed(6)
+              }. Reduce the output-token limit or choose a cheaper model.`,
+            },
+          };
         }
 
         // If streaming chat completion, request usage in the response
