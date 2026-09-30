@@ -56,6 +56,42 @@ describe("OpenAI provider", () => {
     expect(body.message).toContain("pricing unknown");
   });
 
+  test("accepts GPT-6 Luna on the Responses API and charges its published rate", async () => {
+    const token = await createTestToken();
+    await seedUsage({});
+    let capturedBody;
+
+    replyJson(fetchMock, {
+      origin: "https://api.openai.com",
+      path: "/v1/responses",
+      method: "POST",
+      body: {
+        model: "gpt-6-luna",
+        usage: { input_tokens: 1000, output_tokens: 500 },
+        output: [{ role: "assistant", content: [{ text: "hi" }] }],
+      },
+      assertRequest: (opts) => { capturedBody = opts.body; },
+    });
+
+    const response = await workerFetch("/openai/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-6-luna",
+        reasoning: { effort: "medium" },
+        input: "Hello",
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(parseBody(capturedBody)).toMatchObject({ model: "gpt-6-luna", reasoning: { effort: "medium" } });
+    const usage = await readUsage(token);
+    expect(usage.cost).toBeCloseTo(0.00035, 8);
+  });
+
   test("proxies chat completions, augments stream options, and accrues usage", async () => {
     const token = await createTestToken();
     await seedUsage({});
@@ -191,6 +227,7 @@ describe("OpenAI provider", () => {
     ["gpt-5.6-sol", [5, 30]],
     ["gpt-5.6-terra", [2, 12]],
     ["gpt-5.6-luna", [0.2, 1.2]],
+    ["gpt-6-luna", [0.1, 0.5]],
   ])("calculates current pricing for %s", async (model, expectedPricing) => {
     expect(pricing.openai[model]).toEqual(expectedPricing);
     const { cost } = await providers.openai.cost({
@@ -372,6 +409,54 @@ describe("OpenAI provider", () => {
 });
 
 describe("OpenRouter provider", () => {
+  test.each([
+    ["openai/gpt-6-luna", 0.0000001, 0.0000005],
+    ["openai/gpt-5.6-luna", 0.0000002, 0.0000012],
+    ["deepseek/deepseek-v4-flash-0731", 0.000000018, 0.00000032],
+    ["google/gemini-3.5-flash-lite", 0.0000003, 0.0000025],
+    ["anthropic/claude-haiku-4.5", 0.000001, 0.000005],
+  ])("accepts and prices %s using OpenRouter catalog pricing", async (model, promptPrice, completionPrice) => {
+    const token = await createTestToken("test@example.com");
+    await seedUsage({});
+    let capturedBody;
+
+    replyJson(fetchMock, {
+      origin: "https://openrouter.ai",
+      path: "/api/v1/models",
+      method: "GET",
+      body: { data: [{ id: model, pricing: { prompt: promptPrice, completion: completionPrice } }] },
+    });
+    replyJson(fetchMock, {
+      origin: "https://openrouter.ai",
+      path: "/api/v1/chat/completions",
+      method: "POST",
+      body: {
+        model,
+        choices: [{ message: { role: "assistant", content: "hi" } }],
+        usage: { prompt_tokens: 1000, completion_tokens: 500 },
+      },
+      assertRequest: (opts) => { capturedBody = opts.body; },
+    });
+
+    const response = await workerFetch("/openrouter/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        reasoning: { effort: "medium" },
+        messages: [{ role: "user", content: "Hello" }],
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(parseBody(capturedBody)).toMatchObject({ model, reasoning: { effort: "medium" } });
+    const usage = await readUsage(token);
+    expect(usage.cost).toBeCloseTo(promptPrice * 1000 + completionPrice * 500, 8);
+  });
+
   test("uses OpenRouter reported usage cost when model aliases differ", async () => {
     const token = await createTestToken("user@example.com", { useSalt: true });
     await seedUsage({});
