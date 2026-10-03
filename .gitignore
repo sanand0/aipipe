@@ -4,3 +4,4 @@ node_modules/
 .dev.vars
 src/config.js
 data/openrouter-logs/
+.cloudflare/

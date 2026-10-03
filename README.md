@@ -486,7 +486,7 @@ To self-host AI Pipe, you need a:
   - https://aipipe.org/login (or your domain)
   - http://localhost:8787/login (for testing)
 
-1. Clone and install:
+1. Clone and install (Node.js 22 or newer):
 
 ```bash
 git clone https://github.com/sanand0/aipipe.git
@@ -540,25 +540,33 @@ curl http://localhost:8787/usage -H "Authorization: Bearer $AIPIPE_TOKEN"
 Or run specific tests, e.g. only OpenAI tests, via:
 
 ```bash
-npm test -- --grep 'OpenAI'
+npm test -- -t 'OpenAI'
 ```
 
 5. Deploy to Cloudflare:
 
 ```bash
-# Add secrets to production
-npx wrangler secret put AIPIPE_SECRET
-npx wrangler secret put ADMIN_EMAILS
-npx wrangler secret put OPENROUTER_API_KEY
-npx wrangler secret put OPENAI_API_KEY
-npx wrangler secret put GEMINI_API_KEY
+# Authenticate (or set CLOUDFLARE_API_TOKEN for CI)
+npx cf auth login
 
-# Deploy
+# Build and validate without deploying
+npm run build
+npm run deploy -- --dry-run
+
+# First deployment: upload your production secrets from a dotenv file
+npm run deploy -- --secrets-file .dev.vars
+
+# Subsequent deployments preserve existing production secrets
 npm run deploy
 
-# Test
-BASE_URL=https://aipipe.org ADMIN_EMAILS=admin@example.com npm test
+# Test production with a valid AIPipe token
+curl --fail-with-body https://aipipe.org/usage -H "Authorization: Bearer $AIPIPE_TOKEN"
 ```
+
+`cloudflare.config.ts` defines the Worker, domain, SQLite Durable Object, and observability.
+`wrangler.config.ts` configures the esbuild bundler and static assets; `cf` delegates builds and local development to Wrangler.
+Tests run in isolated local Workers using the same Worker configuration and mock provider requests.
+Setting `BASE_URL` does not make `npm test` test production.
 
 ### Admin API
 
