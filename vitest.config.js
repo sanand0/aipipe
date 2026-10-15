@@ -12,11 +12,12 @@ export default defineWorkersConfig({
         miniflare: {
           compatibilityDate: worker.compatibilityDate,
           durableObjects: Object.fromEntries(
-            Object.entries(worker.env).map(([name, binding]) => [name, {
+            Object.entries(worker.env).filter(([, binding]) => binding.exportName).map(([name, binding]) => [name, {
               className: binding.exportName,
               useSQLite: worker.exports[binding.exportName].storage === "sqlite",
             }]),
           ),
+          r2Buckets: ["PUBLIC_STATS"],
           bindings: {
             AIPIPE_SECRET: "test-secret",
             OPENROUTER_API_KEY: "test-openrouter-key",

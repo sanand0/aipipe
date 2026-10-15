@@ -568,6 +568,36 @@ curl --fail-with-body https://aipipe.org/usage -H "Authorization: Bearer $AIPIPE
 Tests run in isolated local Workers using the same Worker configuration and mock provider requests.
 Setting `BASE_URL` does not make `npm test` test production.
 
+### Public usage feed
+
+The Worker publishes `usage.json` to the `aipipe-public-stats` R2 bucket at **00:00, 06:00, 12:00, 18:00 UTC**
+(`0 */6 * * *`). It is a static object: no new public API or authentication is involved.
+The bucket `aipipe-public-stats` is provisioned with public GET access and browser CORS at
+<https://stats.aipipe.org/usage.json>. New installations must create and expose an R2 bucket first;
+normal deployments need only `npm run deploy`. Cloudflare Cron Triggers may run shortly after the
+scheduled minute. A failed publication leaves the previous object unchanged.
+
+```bash
+npm test
+npm run build
+npm run deploy
+```
+
+The JSON has `schema_version`, `timezone: "UTC"`, `collection_started_on`, `scheduled_for`,
+`published_at`, and seven ascending `days` (including today's `complete: false` day).
+Each day includes `total` and `providers` (USD spend, input/output tokens), `iitm_users`, and
+`users_by_provider_count` (`1`, `2`, `3+`), plus an `available` flag. Dates before the new
+collection starts have `available: false` and null metrics—not invented zeroes.
+
+Metrics include **only AI Pipe JWT requests with positive calculated cost**, even when token usage
+is missing (missing counts are represented as zero). Free models, native provider keys, and
+unmetered requests do not count. Providers are API routes: `openai`, `gemini` (from
+`geminiv1beta`), and `openrouter`; `similarity` is counted under OpenAI. A model from Anthropic
+through OpenRouter counts as OpenRouter. `iitm_users` counts distinct paying emails ending in
+`.iitm.ac.in` per UTC day. Provider-count buckets count distinct paying users across all domains,
+once per provider per day, without exposing email addresses. The public metrics may differ from
+`/admin/usage` (which includes historic costs and admin overrides).
+
 ### Admin API
 
 **`GET /admin/usage`**: Get historical usage of all users. Only for admins

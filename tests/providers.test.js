@@ -14,6 +14,9 @@ import {
 } from "./test-helpers.js";
 
 const fetchMock = setupWorkerFetchMock();
+const todayPublicUsage = async () => (await env.AIPIPE_COST.get(
+  env.AIPIPE_COST.idFromName("default"),
+).publicReport()).days.at(-1);
 
 const toHeaders = (headers) => headers instanceof Headers ? headers : new Headers(headers ?? {});
 const parseBody = (body) => {
@@ -90,6 +93,7 @@ describe("OpenAI provider", () => {
     expect(parseBody(capturedBody)).toMatchObject({ model: "gpt-6-luna", reasoning: { effort: "medium" } });
     const usage = await readUsage(token);
     expect(usage.cost).toBeCloseTo(0.00035, 8);
+    expect((await todayPublicUsage()).providers.openai).toMatchObject({ input_tokens: 1000, output_tokens: 500 });
   });
 
   test("proxies chat completions, augments stream options, and accrues usage", async () => {
@@ -479,6 +483,7 @@ describe("OpenRouter provider", () => {
       method: "POST",
       events: [
         'data: {"model":"anthropic/claude-4.6-sonnet-20260217","choices":[{"delta":{"content":"Hello"}}]}',
+        'data: {"model":"anthropic/claude-4.6-sonnet-20260217","usage":{"prompt_tokens":5,"completion_tokens":1}}',
         'data: {"model":"anthropic/claude-4.6-sonnet-20260217","usage":{"prompt_tokens":392824,"completion_tokens":1195,"cost":1.853994}}',
         "data: [DONE]",
       ],
@@ -501,6 +506,9 @@ describe("OpenRouter provider", () => {
     await response.text();
     const usage = await readUsage(token);
     expect(usage.cost).toBeCloseTo(1.853994, 6);
+    expect((await todayPublicUsage()).providers.openrouter).toMatchObject({
+      spend_usd: 1.853994, input_tokens: 392824, output_tokens: 1195,
+    });
   });
 
   test("rejects OpenRouter requests whose estimated prompt cost exceeds remaining budget", async () => {
@@ -632,6 +640,7 @@ describe("Gemini provider", () => {
 
     const usage = await readUsage(token);
     expect(usage.cost).toBeGreaterThan(0);
+    expect((await todayPublicUsage()).providers.gemini).toMatchObject({ input_tokens: 1200, output_tokens: 0 });
   });
 });
 
@@ -679,5 +688,6 @@ describe("Similarity endpoint", () => {
 
     const usage = await readUsage(token);
     expect(usage.cost).toBeGreaterThan(0);
+    expect((await todayPublicUsage()).providers.openai).toMatchObject({ input_tokens: 8, output_tokens: 0 });
   });
 });

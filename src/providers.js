@@ -228,7 +228,7 @@ export const providers = {
           if (res.ok) usage = { prompt_tokens: (await res.json()).totalTokens };
         } catch {}
       }
-      return { cost: tokenCost(geminiCost, model, usage) };
+      return { cost: tokenCost(geminiCost, model, usage), usage };
     },
     parse: (event) => {
       event = event.response ?? event;
@@ -325,7 +325,11 @@ export function sseTransform(provider, addCost) {
           try {
             const parsed = parse?.(JSON.parse(line.slice(6)));
             model = model ?? parsed?.model;
-            usage = usage ?? parsed?.usage;
+            const next = parsed?.usage;
+            // Some streams emit intermediate counts, then empty usage on their final event.
+            if (next && Object.entries(next).some(([key, value]) =>
+              ["prompt_tokens", "input_tokens", "completion_tokens", "output_tokens", "cost"].includes(key)
+              && typeof value === "number" && value > 0)) usage = { ...usage, ...next };
           } catch {}
         }
       });

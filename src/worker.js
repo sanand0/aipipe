@@ -137,7 +137,7 @@ export default {
     // For similarity provider, return the result directly
     if (provider === "similarity" && params.similarity) {
       const { cost } = await providers[provider].cost({ model: params.model, usage: params.usage });
-      if (cost > 0 && !nativeKey) await aiPipeCost.add(email, cost);
+      if (cost > 0 && !nativeKey) await aiPipeCost.add(email, cost, "openai", params.usage);
       return jsonResponse({ code: 200, ...params });
     }
     // Make the actual request
@@ -154,8 +154,8 @@ export default {
       ? async () => {} // No-op for native keys
       : async (data) => {
         const parsed = parse ? parse(data) : data;
-        const { cost } = await providers[provider].cost({ ...parsed, requestedModel, env, path, body: params.body });
-        if (cost > 0) await aiPipeCost.add(email, cost);
+        const { cost, usage: countedUsage } = await providers[provider].cost({ ...parsed, requestedModel, env, path, body: params.body });
+        if (cost > 0) await aiPipeCost.add(email, cost, provider === "geminiv1beta" ? "gemini" : provider, countedUsage ?? parsed.usage);
       };
 
     // For JSON response, extract { model, usage } and add cost based on that
@@ -173,6 +173,16 @@ export default {
       status: response.status,
       statusText: response.statusText,
     });
+  },
+
+  async scheduled(controller, env) {
+    const id = env.AIPIPE_COST.idFromName("default");
+    const report = await env.AIPIPE_COST.get(id).publicReport(controller.scheduledTime);
+    await env.PUBLIC_STATS.put("usage.json", JSON.stringify({
+      ...report,
+      scheduled_for: new Date(controller.scheduledTime).toISOString(),
+      published_at: new Date().toISOString(),
+    }), { httpMetadata: { contentType: "application/json", cacheControl: "public, max-age=60" } });
   },
 };
 
